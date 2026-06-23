@@ -1,75 +1,71 @@
-import sqlite3
 import os
 from typing import List, Tuple, Optional
 from datetime import datetime, timezone
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "..", "dev.db")
+import psycopg2
+import psycopg2.extras
+
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+
+
+def _conn():
+    return psycopg2.connect(DATABASE_URL)
 
 
 def get_active_accounts() -> List[Tuple[str, str, int, str, str, Optional[str]]]:
     """Trả về (id, name, mt5Login, mt5Password, mt5Server, terminalPath) — chỉ tài khoản đã kết nối."""
-    conn = sqlite3.connect(DB_PATH)
-    try:
-        cur = conn.execute("""
-            SELECT id, name, TRIM(mt5Login), TRIM(mt5Password), TRIM(mt5Server), terminalPath
-            FROM Mt5Account
-            WHERE isActive = 1 AND status = 'connected'
-        """)
-        return cur.fetchall()
-    finally:
-        conn.close()
+    with _conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, name, TRIM(mt5Login), TRIM(mt5Password), TRIM(mt5Server), terminalPath
+                FROM "Mt5Account"
+                WHERE "isActive" = true AND status = 'connected'
+            """)
+            return cur.fetchall()
 
 
 def get_pending_accounts() -> List[Tuple[str, str, int, str, str, Optional[str]]]:
     """Tài khoản mới chưa xác thực kết nối."""
-    conn = sqlite3.connect(DB_PATH)
-    try:
-        cur = conn.execute("""
-            SELECT id, name, TRIM(mt5Login), TRIM(mt5Password), TRIM(mt5Server), terminalPath
-            FROM Mt5Account
-            WHERE isActive = 1 AND status = 'pending'
-        """)
-        return cur.fetchall()
-    finally:
-        conn.close()
+    with _conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, name, TRIM(mt5Login), TRIM(mt5Password), TRIM(mt5Server), terminalPath
+                FROM "Mt5Account"
+                WHERE "isActive" = true AND status = 'pending'
+            """)
+            return cur.fetchall()
 
 
 def update_account_status(account_id: str, status: str):
     """Cập nhật status: pending | connected | failed."""
-    conn = sqlite3.connect(DB_PATH)
-    try:
-        conn.execute(
-            "UPDATE Mt5Account SET status = ?, updatedAt = ? WHERE id = ?",
-            (status, _now(), account_id),
-        )
+    with _conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                'UPDATE "Mt5Account" SET status = %s, "updatedAt" = %s WHERE id = %s',
+                (status, _now(), account_id),
+            )
         conn.commit()
-    finally:
-        conn.close()
 
 
 def set_terminal_path(account_id: str, terminal_path: str):
     """Gán đường dẫn terminal cho 1 tài khoản."""
-    conn = sqlite3.connect(DB_PATH)
-    try:
-        conn.execute(
-            "UPDATE Mt5Account SET terminalPath = ?, updatedAt = ? WHERE id = ?",
-            (terminal_path, _now(), account_id),
-        )
+    with _conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                'UPDATE "Mt5Account" SET "terminalPath" = %s, "updatedAt" = %s WHERE id = %s',
+                (terminal_path, _now(), account_id),
+            )
         conn.commit()
-    finally:
-        conn.close()
 
 
 def log_trade(signal_text: str, status: str, result: str):
-    conn = sqlite3.connect(DB_PATH)
-    try:
-        conn.execute(
-            "INSERT INTO TradeLog (id, signal, status, result, createdAt) VALUES (?, ?, ?, ?, ?)",
-            (_cuid(), signal_text, status, result, _now()),
-        )
+    with _conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                'INSERT INTO "TradeLog" (id, signal, status, result, "createdAt") VALUES (%s, %s, %s, %s, %s)',
+                (_cuid(), signal_text, status, result, _now()),
+            )
         conn.commit()
-    finally:
-        conn.close()
 
 
 def _now() -> str:
