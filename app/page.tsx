@@ -1,65 +1,101 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import Link from "next/link";
+import FinanceBg from "@/app/components/FinanceBg";
+
+export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <>
+      <FinanceBg />
+
+      <div className="relative z-10 min-h-screen text-white">
+        {/* Navbar */}
+        <nav className="fixed top-0 inset-x-0 z-50 border-b border-white/5 bg-gray-950/70 backdrop-blur-xl">
+          <div className="mx-auto max-w-6xl px-6 h-14 flex items-center justify-between">
+            <span className="font-bold tracking-tight">Giao Dịch Tự Động</span>
+            <div className="flex items-center gap-3">
+              <Link href="/login" className="text-sm text-gray-400 hover:text-white transition">Đăng nhập</Link>
+              <Link href="/login" className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-sm px-4 py-2 rounded-lg transition">
+                Tham gia ngay
+              </Link>
+            </div>
+          </div>
+        </nav>
+
+        {/* Hero */}
+        <section className="pt-36 pb-24 px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1.5 text-xs text-emerald-400 mb-7">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Hệ thống đang hoạt động 24/7
+            </div>
+
+            <h1 className="text-5xl sm:text-6xl font-black leading-tight mb-6">
+              Để Bot Giao Dịch<br />
+              <span className="text-emerald-400">Sinh Lời Cho Bạn</span>
+            </h1>
+
+            <p className="text-gray-400 text-base leading-relaxed mb-10 max-w-lg mx-auto">
+              Kết nối tài khoản MT5 vào hệ thống. Bot tự động nhận tín hiệu và đặt lệnh 24/7 — bạn không cần làm gì, chỉ theo dõi lợi nhuận tăng lên.
+            </p>
+
+            <Link href="/login" className="inline-flex items-center justify-center bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-9 py-4 rounded-xl transition text-base shadow-lg shadow-emerald-500/20">
+              Bắt đầu miễn phí →
+            </Link>
+          </div>
+        </section>
+
+        {/* Steps */}
+        <section className="py-20 px-6">
+          <div className="mx-auto max-w-4xl">
+            <div className="text-center mb-12">
+              <h2 className="text-2xl font-black mb-2">Bắt Đầu Trong 3 Phút</h2>
+              <p className="text-gray-500 text-sm">Không cần biết giao dịch. Bot lo tất cả.</p>
+            </div>
+            <div className="grid sm:grid-cols-3 gap-5">
+              {[
+                { step: "1", icon: "👤", title: "Tạo tài khoản",  desc: "Đăng ký miễn phí với email của bạn." },
+                { step: "2", icon: "🔗", title: "Kết nối MT5",    desc: "Nhập thông tin tài khoản MT5 (login, mật khẩu, server)." },
+                { step: "3", icon: "📈", title: "Nhận lợi nhuận", desc: "Bot tự động đặt lệnh 24/7. Bạn chỉ cần theo dõi số dư tăng." },
+              ].map((s) => (
+                <div key={s.step} className="bg-gray-900/70 backdrop-blur border border-gray-700/50 rounded-2xl p-6 text-center">
+                  <div className="text-3xl mb-3">{s.icon}</div>
+                  <div className="inline-flex w-6 h-6 rounded-full bg-emerald-500/20 items-center justify-center mb-3">
+                    <span className="text-emerald-400 text-xs font-bold">{s.step}</span>
+                  </div>
+                  <h3 className="font-bold mb-2">{s.title}</h3>
+                  <p className="text-gray-400 text-sm leading-relaxed">{s.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="py-20 px-6">
+          <div className="mx-auto max-w-lg text-center bg-gray-900/70 backdrop-blur border border-gray-700/50 rounded-3xl p-12">
+            <h2 className="text-2xl font-black mb-3">Tham Gia Ngay Hôm Nay</h2>
+            <p className="text-gray-400 text-sm mb-8">
+              Kết nối tài khoản MT5 và để hệ thống tự động giao dịch sinh lời cho bạn.
+            </p>
+            <Link href="/login" className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-8 py-4 rounded-xl transition text-base shadow-lg shadow-emerald-500/20">
+              Đăng ký miễn phí →
+            </Link>
+            <p className="text-xs text-gray-600 mt-4">Miễn phí · Không phí ẩn</p>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="border-t border-white/5 py-6 px-6">
+          <div className="mx-auto max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600">
+            <span>Giao Dịch Tự Động © 2026</span>
+            <div className="flex gap-5">
+              <Link href="/login" className="hover:text-gray-400 transition">Đăng nhập</Link>
+              <Link href="/login" className="hover:text-gray-400 transition">Đăng ký</Link>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </>
   );
 }

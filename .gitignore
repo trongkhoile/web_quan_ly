@@ -39,3 +39,21 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/app/generated/prisma
+
+# database
+*.db
+*.db-journal
+
+# MT5 terminal copies (binary, large)
+/mt5_terminals/
+
+# logs
+*.log
+next_dev.log
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
