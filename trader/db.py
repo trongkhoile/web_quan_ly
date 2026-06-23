@@ -8,7 +8,14 @@ import psycopg2.extras
 
 def _conn():
     url = os.environ.get("DATABASE_URL", "")
-    return psycopg2.connect(url)
+    last_err = None
+    for _ in range(3):
+        try:
+            return psycopg2.connect(url, connect_timeout=15)
+        except psycopg2.OperationalError as e:
+            last_err = e
+            import time; time.sleep(3)
+    raise last_err
 
 
 def get_active_accounts() -> List[Tuple[str, str, int, str, str, Optional[str]]]:
