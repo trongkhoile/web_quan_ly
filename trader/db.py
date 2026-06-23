@@ -5,11 +5,10 @@ from datetime import datetime, timezone
 import psycopg2
 import psycopg2.extras
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "")
-
 
 def _conn():
-    return psycopg2.connect(DATABASE_URL)
+    url = os.environ.get("DATABASE_URL", "")
+    return psycopg2.connect(url)
 
 
 def get_active_accounts() -> List[Tuple[str, str, int, str, str, Optional[str]]]:
