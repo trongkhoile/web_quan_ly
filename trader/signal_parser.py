@@ -10,6 +10,7 @@ class TradeSignal:
     entry: Optional[float] = None
     sl: Optional[float] = None
     tp: Optional[float] = None
+    dca: Optional[float] = None
     lot: float = 0.01
 
 
@@ -84,5 +85,6 @@ def parse_signal(text: str) -> Optional[TradeSignal]:
         entry=get_value("ENTRY"),
         sl=get_value("SL"),
         tp=get_value("TP"),
+        dca=get_value("DCA"),
         lot=get_value("LOT") or 0.01,
     )

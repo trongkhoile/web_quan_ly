@@ -101,6 +101,47 @@ def _open_order(signal: TradeSignal) -> str:
     return f"ticket={result.order}"
 
 
+def _open_dca_order(signal: TradeSignal, dca_price: float) -> str:
+    """Đặt lệnh pending limit tại giá DCA."""
+    symbol = _resolve_symbol(signal.symbol)
+    symbol_info = mt5.symbol_info(symbol)
+    if not symbol_info.visible:
+        mt5.symbol_select(symbol, True)
+        time.sleep(0.3)
+        symbol_info = mt5.symbol_info(symbol)
+
+    filling = _get_filling_mode(symbol_info)
+
+    # SELL + DCA trên giá entry → SELL LIMIT; BUY + DCA dưới giá entry → BUY LIMIT
+    order_type = (mt5.ORDER_TYPE_SELL_LIMIT if signal.action == "SELL"
+                  else mt5.ORDER_TYPE_BUY_LIMIT)
+
+    request = {
+        "action":       mt5.TRADE_ACTION_PENDING,
+        "symbol":       symbol,
+        "volume":       signal.lot,
+        "type":         order_type,
+        "price":        dca_price,
+        "deviation":    20,
+        "magic":        123456,
+        "comment":      "TelegramDCA",
+        "type_time":    mt5.ORDER_TIME_GTC,
+        "type_filling": filling,
+    }
+    if signal.sl is not None:
+        request["sl"] = signal.sl
+    if signal.tp is not None:
+        request["tp"] = signal.tp
+
+    result = mt5.order_send(request)
+    if result is None or result.retcode != mt5.TRADE_RETCODE_DONE:
+        retcode = result.retcode if result else "None"
+        comment = result.comment if result else ""
+        raise RuntimeError(f"DCA retcode={retcode} {comment}")
+
+    return f"dca_ticket={result.order}"
+
+
 def _close_positions(symbol: str) -> str:
     symbol = _resolve_symbol(symbol)
     positions = mt5.positions_get(symbol=symbol)
@@ -322,6 +363,12 @@ def worker_process(
                     msg = _close_positions(signal.symbol)
                 else:
                     msg = _open_order(signal)
+                    if signal.dca is not None:
+                        try:
+                            dca_msg = _open_dca_order(signal, signal.dca)
+                            msg += f" | {dca_msg}"
+                        except Exception as e:
+                            msg += f" | DCA thất bại: {e}"
 
                 result_queue.put({
                     "account_id": account_id,
