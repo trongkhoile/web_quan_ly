@@ -115,9 +115,10 @@ export default function LandingPage() {
               <line x1="210" y1="200" x2="62"  y2="76"  stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
             </svg>
 
-            {/* Center — Globe sphere only (text separate so translate is exact) */}
-            <div className="absolute anim-float1"
+            {/* Center — outer div centers, inner div floats (can't mix transforms) */}
+            <div className="absolute"
               style={{ top:"50%", left:"50%", transform:"translate(-50%,-50%)", zIndex:10 }}>
+            <div className="anim-float1">
               <div style={{
                 width:108, height:108, borderRadius:"50%", position:"relative", overflow:"hidden",
                 background:"radial-gradient(circle at 34% 30%, #2dffc9 0%, #00c49a 30%, #00b894 58%, #006e4e 100%)",
@@ -142,6 +143,7 @@ export default function LandingPage() {
                 }}/>
               </div>
             </div>
+            </div>{/* /outer centering div */}
             {/* Label below globe */}
             <div className="absolute font-black text-[10px] tracking-widest text-center"
               style={{ top:"calc(50% + 62px)", left:"50%", transform:"translateX(-50%)", zIndex:10, color:T }}>
