@@ -42,12 +42,63 @@ export default function LandingPage() {
   const testiRef    = useVisible();
   const faqRef      = useVisible();
 
+  // Refs for dynamic line drawing
+  const netSvgRef  = useRef<SVGSVGElement>(null);
+  const globeRef   = useRef<HTMLDivElement>(null);
+  const satRefs    = useRef<(HTMLDivElement | null)[]>([]);
+  const lineRefs   = useRef<(SVGLineElement | null)[]>([]);
+
   useEffect(() => {
     const t = setInterval(() => {
       setShow(false);
       setTimeout(() => { setWordIdx((i) => (i + 1) % heroWords.length); setShow(true); }, 300);
     }, 2200);
     return () => clearInterval(t);
+  }, []);
+
+  // Update SVG line endpoints each frame to follow animated satellite divs
+  useEffect(() => {
+    let rafId: number;
+    function tick() {
+      const svg = netSvgRef.current;
+      const globe = globeRef.current;
+      if (!svg || !globe) { rafId = requestAnimationFrame(tick); return; }
+
+      const svgRect = svg.getBoundingClientRect();
+      if (svgRect.width === 0) { rafId = requestAnimationFrame(tick); return; }
+
+      const toSvg = (clientX: number, clientY: number) => ({
+        x: (clientX - svgRect.left) / svgRect.width  * 420,
+        y: (clientY - svgRect.top)  / svgRect.height * 400,
+      });
+
+      const gr = globe.getBoundingClientRect();
+      const gc = toSvg(gr.left + gr.width / 2, gr.top + gr.height / 2);
+      const globeR = (gr.width / 2) / svgRect.width * 420;
+
+      satRefs.current.forEach((sat, i) => {
+        const line = lineRefs.current[i];
+        if (!sat || !line) return;
+        const sr = sat.getBoundingClientRect();
+        const sc = toSvg(sr.left + sr.width / 2, sr.top + sr.height / 2);
+        const satR = (sr.width / 2) / svgRect.width * 420;
+
+        const dx = sc.x - gc.x;
+        const dy = sc.y - gc.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        const nx = dx / dist;
+        const ny = dy / dist;
+
+        line.setAttribute("x1", String(gc.x + globeR * nx));
+        line.setAttribute("y1", String(gc.y + globeR * ny));
+        line.setAttribute("x2", String(sc.x - satR * nx));
+        line.setAttribute("y2", String(sc.y - satR * ny));
+      });
+
+      rafId = requestAnimationFrame(tick);
+    }
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
   }, []);
 
   return (
@@ -105,26 +156,19 @@ export default function LandingPage() {
 
           {/* Right — floating network */}
           <div className="flex-1 flex justify-center items-center relative h-[400px] w-full max-w-[420px]">
-            {/* Dashed lines — from globe edge (r=54) to satellite edge (r=28) */}
-            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 420 400" style={{ zIndex:1 }}>
-              {/* Sat1 top     center(210,36)  → from(210,146) to(210,64)   */}
-              <line x1="210" y1="146" x2="210" y2="64"  stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
-              {/* Sat2 top-right center(358,76) → from(251,165) to(337,94)  */}
-              <line x1="251" y1="165" x2="337" y2="94"  stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
-              {/* Sat3 right   center(384,188) → from(264,196) to(356,190)  */}
-              <line x1="264" y1="196" x2="356" y2="190" stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
-              {/* Sat4 bot-right center(316,340)→ from(243,243) to(299,318) */}
-              <line x1="243" y1="243" x2="299" y2="318" stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
-              {/* Sat5 bot-left  center(104,340)→ from(177,243) to(121,318) */}
-              <line x1="177" y1="243" x2="121" y2="318" stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
-              {/* Sat6 top-left  center(62,76) → from(169,165) to(84,94)   */}
-              <line x1="169" y1="165" x2="84"  y2="94"  stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
+            {/* Dashed lines — dynamically updated by RAF loop */}
+            <svg ref={netSvgRef} className="absolute inset-0 w-full h-full" viewBox="0 0 420 400" style={{ zIndex:1 }}>
+              {[0,1,2,3,4,5].map(i => (
+                <line key={i} ref={el => { lineRefs.current[i] = el; }}
+                  stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"
+                  x1="0" y1="0" x2="0" y2="0"/>
+              ))}
             </svg>
 
             {/* Center — outer div centers, inner div floats (can't mix transforms) */}
             <div className="absolute"
               style={{ top:"50%", left:"50%", transform:"translate(-50%,-50%)", zIndex:10 }}>
-            <div className="anim-float1">
+            <div className="anim-float1" ref={globeRef}>
               <div style={{
                 width:108, height:108, borderRadius:"50%", position:"relative", overflow:"hidden",
                 background:"radial-gradient(circle at 34% 30%, #2dffc9 0%, #00c49a 30%, #00b894 58%, #006e4e 100%)",
@@ -171,7 +215,8 @@ export default function LandingPage() {
               { style:{ top:"12%", left:"8%" }, cls:"anim-float1", delay:"1s",
                 icon:<svg viewBox="0 0 24 24" fill="none" stroke={T} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><polyline points="20 6 9 17 4 12"/></svg> },
             ].map((b, i) => (
-              <div key={i} className={`absolute rounded-full flex items-center justify-center shadow-md ${b.cls}`}
+              <div key={i} ref={el => { satRefs.current[i] = el; }}
+                className={`absolute rounded-full flex items-center justify-center shadow-md ${b.cls}`}
                 style={{
                   ...b.style,
                   width: 56, height: 56,
