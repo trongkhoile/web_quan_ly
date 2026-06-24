@@ -146,6 +146,9 @@ def _close_single_position(pos) -> bool:
     tick = mt5.symbol_info_tick(pos.symbol)
     if not tick:
         return False
+    symbol_info = mt5.symbol_info(pos.symbol)
+    if not symbol_info:
+        return False
     close_type = mt5.ORDER_TYPE_SELL if pos.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
     price = tick.bid if close_type == mt5.ORDER_TYPE_SELL else tick.ask
     result = mt5.order_send({
@@ -159,8 +162,10 @@ def _close_single_position(pos) -> bool:
         "magic":        123456,
         "comment":      "TelegramCloseAll",
         "type_time":    mt5.ORDER_TIME_GTC,
-        "type_filling": mt5.ORDER_FILLING_IOC,
+        "type_filling": _get_filling_mode(symbol_info),
     })
+    if result and result.retcode != mt5.TRADE_RETCODE_DONE:
+        logging.warning(f"close_single retcode={result.retcode} {result.comment}")
     return bool(result and result.retcode == mt5.TRADE_RETCODE_DONE)
 
 
