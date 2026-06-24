@@ -274,13 +274,6 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-              <h3 className="font-semibold mb-3 text-xs text-gray-400 uppercase tracking-wide">Hỗ trợ</h3>
-              <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2.5">
-                <span className="text-sm font-medium" style={{ color: NAVY }}>Zalo: 0397583137</span>
-              </div>
-              <p className="text-gray-400 text-xs mt-2">Hỗ trợ 24/7 • Chuyên nghiệp • Uy tín</p>
-            </div>
           </div>
         </div>
       </main>
