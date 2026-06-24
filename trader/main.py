@@ -368,7 +368,8 @@ async def run():
     async with app:
         await app.start()
         await app.updater.start_polling(
-            allowed_updates=["message", "channel_post", "edited_message"]
+            allowed_updates=["message", "channel_post", "edited_message"],
+            drop_pending_updates=True,
         )
         logger.info(f"Bot đang chạy | DCA group: {GROUP_ID_DCA} | Simple group: {GROUP_ID_SIMPLE}")
         try:
