@@ -233,6 +233,7 @@ def _monitor_positions(
                         "lot":       pos.volume,
                         "openPrice": pos.price_open,
                         "openTime":  datetime.datetime.fromtimestamp(pos.time).isoformat(),
+                        "comment":   pos.comment,
                     }
 
             # Phát hiện positions vừa đóng
@@ -260,17 +261,18 @@ def _monitor_positions(
                         })
                         logging.info(f"[{name}] Lệnh đóng: {info['symbol']} profit={out.profit:.2f}")
 
-                        # TP/SL đóng → đóng các lệnh mở cùng symbol + hủy DCA pending
-                        if out.reason in (mt5.DEAL_REASON_TP, mt5.DEAL_REASON_SL):
-                            sym = info["symbol"]
-                            others = [p for p in (mt5.positions_get(symbol=sym) or [])
-                                      if p.magic == 123456]
-                            for pos in others:
+                        # Nếu lệnh có comment "dca" đóng → đóng tất cả lệnh dca còn lại + hủy pending dca
+                        if info.get("comment", "").lower() == "dca":
+                            all_positions = mt5.positions_get() or []
+                            dca_others = [p for p in all_positions
+                                          if p.magic == 123456 and p.comment.lower() == "dca"]
+                            for pos in dca_others:
                                 if _close_single_position(pos):
-                                    logging.info(f"[{name}] Đóng lệnh liên quan ticket={pos.ticket}")
-                            pending = [o for o in (mt5.orders_get(symbol=sym) or [])
-                                       if o.magic == 123456]
-                            for order in pending:
+                                    logging.info(f"[{name}] Đóng lệnh DCA liên quan ticket={pos.ticket}")
+                            all_pending = mt5.orders_get() or []
+                            dca_pending = [o for o in all_pending
+                                           if o.magic == 123456 and o.comment.lower() == "dca"]
+                            for order in dca_pending:
                                 if _cancel_pending(order.ticket):
                                     logging.info(f"[{name}] Hủy DCA pending ticket={order.ticket}")
                 except Exception as e:
