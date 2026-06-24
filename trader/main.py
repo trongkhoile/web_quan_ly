@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, ContextTypes, MessageHandler, filters
 
-from db import get_active_accounts, get_pending_accounts, update_account_status, log_trade, set_terminal_path, push_trade_history
+from db import get_active_accounts, get_pending_accounts, get_all_account_ids, update_account_status, log_trade, set_terminal_path, push_trade_history
 from signal_parser import parse_signal, TradeSignal
 from terminal_manager import (
     allocate_terminal,
@@ -222,14 +222,18 @@ async def watch_accounts_changes():
     while True:
         await asyncio.sleep(30)
         try:
-            active_ids = {a[0] for a in get_active_accounts()}
+            all_accounts = get_all_account_ids()  # {id: isActive}
+            all_ids      = set(all_accounts.keys())
+            active_ids   = {aid for aid, is_active in all_accounts.items() if is_active}
 
-            # Cập nhật inactive_ids để dispatch_signal không gửi lệnh vào account tắt
+            # Cập nhật inactive_ids: account vẫn tồn tại nhưng isActive=False → bỏ qua tín hiệu, GIỮ worker
             inactive_ids.clear()
-            inactive_ids.update(aid for aid in worker_queues if aid not in active_ids)
+            inactive_ids.update(aid for aid in worker_queues if aid in all_ids and aid not in active_ids)
 
-            for acc_id in list(inactive_ids):
-                logger.info(f"Account {acc_id} bị tắt/xóa — dừng worker...")
+            # Account bị XÓA khỏi DB → dừng worker VÀ kill terminal
+            deleted_ids = [aid for aid in list(worker_queues.keys()) if aid not in all_ids]
+            for acc_id in deleted_ids:
+                logger.info(f"Account {acc_id} đã bị xóa — dừng worker và kill terminal...")
                 try:
                     worker_queues[acc_id].put(SHUTDOWN_SIGNAL)
                 except Exception:

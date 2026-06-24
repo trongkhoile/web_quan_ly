@@ -24,6 +24,11 @@ def _to_tuple(acc) -> Tuple[str, str, int, str, str, Optional[str]]:
     )
 
 
+def get_all_account_ids() -> dict[str, bool]:
+    """Trả về {id: isActive} cho tất cả account (kể cả đang tắt)."""
+    return {a["id"]: a["isActive"] for a in _api("GET", "?type=all")}
+
+
 def get_active_accounts() -> List[Tuple[str, str, int, str, str, Optional[str]]]:
     return [_to_tuple(a) for a in _api("GET", "?type=active")]
 

@@ -6,10 +6,19 @@ function checkSecret(req: NextRequest) {
   return secret === process.env.INTERNAL_API_SECRET;
 }
 
-// GET /api/internal?type=active|pending
+// GET /api/internal?type=active|pending|all
 export async function GET(req: NextRequest) {
   if (!checkSecret(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const type = req.nextUrl.searchParams.get("type");
+
+  if (type === "all") {
+    // Tất cả account IDs (kể cả đang tắt), dùng để phát hiện account bị xóa
+    const accounts = await prisma.mt5Account.findMany({
+      select: { id: true, isActive: true },
+    });
+    return NextResponse.json(accounts);
+  }
+
   const status = type === "pending" ? "pending" : "connected";
   const accounts = await prisma.mt5Account.findMany({
     where: { isActive: true, status },
