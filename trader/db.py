@@ -13,11 +13,17 @@ def _api(method: str, path: str = "", **kwargs):
     return resp.json()
 
 
-def _to_tuple(acc) -> Tuple[str, str, int, str, str, Optional[str], str, float]:
+def _to_tuple(acc) -> Optional[Tuple[str, str, int, str, str, Optional[str], str, float]]:
+    try:
+        login = int(acc["mt5Login"])
+    except (ValueError, TypeError):
+        import logging
+        logging.warning(f"Bỏ qua tài khoản '{acc.get('name')}': mt5Login không hợp lệ ({acc.get('mt5Login')})")
+        return None
     return (
         acc["id"],
         acc["name"],
-        int(acc["mt5Login"]),
+        login,
         acc["mt5Password"],
         acc["mt5Server"],
         acc.get("terminalPath"),
@@ -33,11 +39,11 @@ def get_all_account_ids() -> dict[str, dict]:
 
 
 def get_active_accounts() -> List[Tuple[str, str, int, str, str, Optional[str]]]:
-    return [_to_tuple(a) for a in _api("GET", "?type=active")]
+    return [t for a in _api("GET", "?type=active") if (t := _to_tuple(a)) is not None]
 
 
 def get_pending_accounts() -> List[Tuple[str, str, int, str, str, Optional[str]]]:
-    return [_to_tuple(a) for a in _api("GET", "?type=pending")]
+    return [t for a in _api("GET", "?type=pending") if (t := _to_tuple(a)) is not None]
 
 
 def update_account_status(account_id: str, status: str):
