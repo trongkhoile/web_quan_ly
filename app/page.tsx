@@ -292,8 +292,7 @@ export default function LandingPage() {
                 <div className="absolute -top-4 left-6 w-8 h-8 rounded-full flex items-center justify-center font-black text-white text-sm shadow-md" style={{ background: T }}>
                   {s.n}
                 </div>
-                <div className="text-3xl font-black mb-4 mt-2" style={{ color: "rgba(0,184,148,0.18)" }}>{s.n}</div>
-                <h3 className="font-bold text-[#0d2137] mb-2 text-sm leading-snug">{s.title}</h3>
+                <h3 className="font-bold text-[#0d2137] mb-2 text-sm leading-snug mt-4">{s.title}</h3>
                 <p className="text-gray-500 text-xs leading-relaxed">{s.desc}</p>
               </div>
             ))}
