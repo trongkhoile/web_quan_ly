@@ -104,11 +104,36 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white font-sans text-[#0d2137] overflow-x-hidden">
 
-      {/* Page-wide teal gradient background (right side) */}
-      <div className="fixed top-0 right-0 w-1/2 h-full pointer-events-none -z-10"
-        style={{ background: "radial-gradient(ellipse at 90% 20%, rgba(0,184,148,0.12) 0%, rgba(0,184,148,0.04) 50%, transparent 75%)" }} />
-      <div className="fixed top-0 right-0 w-1/2 h-full pointer-events-none -z-10 opacity-30"
-        style={{ backgroundImage: `linear-gradient(rgba(0,184,148,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0,184,148,0.08) 1px, transparent 1px)`, backgroundSize: "48px 48px" }} />
+      {/* ── Laser grid background ── */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex:-1 }}>
+        {/* Glow layer — blurred wide lines */}
+        <div style={{
+          position:"absolute", inset:0,
+          backgroundImage:`linear-gradient(rgba(0,184,148,0.22) 2px, transparent 2px),
+                           linear-gradient(90deg, rgba(0,184,148,0.22) 2px, transparent 2px)`,
+          backgroundSize:"64px 64px",
+          filter:"blur(2.5px)",
+          animation:"laser-scroll 14s linear infinite, laser-pulse 5s ease-in-out infinite",
+        }}/>
+        {/* Sharp core lines */}
+        <div style={{
+          position:"absolute", inset:0,
+          backgroundImage:`linear-gradient(rgba(0,184,148,0.32) 1px, transparent 1px),
+                           linear-gradient(90deg, rgba(0,184,148,0.32) 1px, transparent 1px)`,
+          backgroundSize:"64px 64px",
+          animation:"laser-scroll 14s linear infinite",
+        }}/>
+        {/* White vignette — keeps center readable */}
+        <div style={{
+          position:"absolute", inset:0,
+          background:"radial-gradient(ellipse at 40% 35%, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.55) 45%, rgba(255,255,255,0.15) 100%)",
+        }}/>
+        {/* Teal glow accent top-right */}
+        <div style={{
+          position:"absolute", inset:0,
+          background:"radial-gradient(ellipse at 88% 10%, rgba(0,184,148,0.12) 0%, transparent 55%)",
+        }}/>
+      </div>
 
       {/* ── NAVBAR ── */}
       <nav className="fixed top-0 inset-x-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100">
