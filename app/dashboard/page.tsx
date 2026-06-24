@@ -196,35 +196,35 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 {accounts.map((acc) => (
                   <div key={acc.id}
-                    className="group bg-white border border-gray-200 hover:border-[#00b894]/50 rounded-2xl p-5 flex items-center justify-between gap-4 transition shadow-sm">
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                    className="group bg-white border border-gray-200 hover:border-[#00b894]/50 rounded-2xl p-4 flex items-center justify-between gap-3 transition shadow-sm">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                         style={{ background: "rgba(0,184,148,0.08)", border: "1.5px solid rgba(0,184,148,0.2)" }}>
                         <span className="text-xs font-bold" style={{ color: T }}>MT5</span>
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold" style={{ color: NAVY }}>{acc.name}</span>
+                          <span className="font-semibold text-sm" style={{ color: NAVY }}>{acc.name}</span>
                           {acc.status === "pending" ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 border border-orange-200 px-2 py-0.5 text-xs font-medium text-orange-600">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 border border-orange-200 px-2 py-0.5 text-xs font-medium text-orange-600">
                               <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />Đang kết nối...
                             </span>
                           ) : acc.status === "failed" ? (
-                            <span className="rounded-full bg-red-50 border border-red-200 px-2 py-0.5 text-xs font-medium text-red-500">✕ Sai thông tin</span>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-200 px-2 py-0.5 text-xs font-medium text-red-500">Sai thông tin</span>
                           ) : acc.isActive ? (
                             <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
                               style={{ background: "rgba(0,184,148,0.08)", border: "1px solid rgba(0,184,148,0.25)", color: T }}>
                               <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: T }} />Hoạt động
                             </span>
                           ) : (
-                            <span className="rounded-full bg-gray-100 border border-gray-200 px-2 py-0.5 text-xs font-medium text-gray-400">○ Tắt</span>
+                            <span className="rounded-full bg-gray-100 border border-gray-200 px-2 py-0.5 text-xs font-medium text-gray-400">Tắt</span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-400 mt-0.5 font-mono">{acc.mt5Login} · {acc.mt5Server}</p>
+                        <p className="text-xs text-gray-400 mt-0.5 font-mono truncate">{acc.mt5Login} · {acc.mt5Server}</p>
                       </div>
                     </div>
                     <button onClick={() => handleDelete(acc.id, acc.name)}
-                      className="opacity-0 group-hover:opacity-100 shrink-0 rounded-lg border border-red-200 px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 transition">
+                      className="shrink-0 rounded-lg border border-red-200 px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 transition md:opacity-0 md:group-hover:opacity-100">
                       Xóa
                     </button>
                   </div>
