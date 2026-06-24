@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 const T = "#00b894";
 const NAVY = "#0d2137";
@@ -35,8 +36,13 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 export default function LandingPage() {
+  const router = useRouter();
   const [wordIdx, setWordIdx] = useState(0);
   const [show, setShow] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/auth/me").then(r => { if (r.ok) router.replace("/dashboard"); });
+  }, [router]);
   const featuresRef = useVisible();
   const stepsRef    = useVisible();
   const testiRef    = useVisible();
