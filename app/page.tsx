@@ -102,31 +102,31 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white font-sans text-[#0d2137] overflow-x-hidden">
+    <div className="min-h-screen font-sans text-[#0d2137] overflow-x-hidden">
 
       {/* ── Laser grid background ── */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex:-1 }}>
         {/* Glow layer — blurred wide lines */}
         <div style={{
           position:"absolute", inset:0,
-          backgroundImage:`linear-gradient(rgba(0,184,148,0.22) 2px, transparent 2px),
-                           linear-gradient(90deg, rgba(0,184,148,0.22) 2px, transparent 2px)`,
+          backgroundImage:`linear-gradient(rgba(0,184,148,0.35) 2px, transparent 2px),
+                           linear-gradient(90deg, rgba(0,184,148,0.35) 2px, transparent 2px)`,
           backgroundSize:"64px 64px",
-          filter:"blur(2.5px)",
+          filter:"blur(3px)",
           animation:"laser-scroll 14s linear infinite, laser-pulse 5s ease-in-out infinite",
         }}/>
         {/* Sharp core lines */}
         <div style={{
           position:"absolute", inset:0,
-          backgroundImage:`linear-gradient(rgba(0,184,148,0.32) 1px, transparent 1px),
-                           linear-gradient(90deg, rgba(0,184,148,0.32) 1px, transparent 1px)`,
+          backgroundImage:`linear-gradient(rgba(0,184,148,0.55) 1px, transparent 1px),
+                           linear-gradient(90deg, rgba(0,184,148,0.55) 1px, transparent 1px)`,
           backgroundSize:"64px 64px",
           animation:"laser-scroll 14s linear infinite",
         }}/>
-        {/* White vignette — keeps center readable */}
+        {/* Light vignette — keeps text readable without hiding the grid */}
         <div style={{
           position:"absolute", inset:0,
-          background:"radial-gradient(ellipse at 40% 35%, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.55) 45%, rgba(255,255,255,0.15) 100%)",
+          background:"radial-gradient(ellipse at 42% 32%, rgba(240,253,248,0.7) 0%, rgba(240,253,248,0.3) 50%, transparent 80%)",
         }}/>
         {/* Teal glow accent top-right */}
         <div style={{
