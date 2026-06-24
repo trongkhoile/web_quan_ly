@@ -317,6 +317,7 @@ def worker_process(
     signal_queue: mp.Queue,
     result_queue: mp.Queue,
     at_lock: mp.Lock = None,
+    lot: float = 0.01,
 ):
     """
     Process chính của mỗi worker.
@@ -440,9 +441,9 @@ def worker_process(
                     elif signal_mode == "dca" and not has_dca:
                         msg = "Bỏ qua (tín hiệu không có DCA, chế độ DCA)"
                     else:
-                        # Đặt lệnh market
+                        # Dùng lot của tài khoản (overrides signal.lot)
+                        signal.lot = lot
                         msg = _open_order(signal)
-                        # Đặt DCA pending nếu có
                         if has_dca:
                             try:
                                 msg += f" | {_open_dca_order(signal, signal.dca)}"

@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
   if (type === "all") {
     const accounts = await prisma.mt5Account.findMany({
-      select: { id: true, isActive: true, signalMode: true },
+      select: { id: true, isActive: true, signalMode: true, lot: true },
     });
     return NextResponse.json(accounts);
   }
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
   const status = type === "pending" ? "pending" : "connected";
   const accounts = await prisma.mt5Account.findMany({
     where: { isActive: true, status },
-    select: { id: true, name: true, mt5Login: true, mt5Password: true, mt5Server: true, terminalPath: true, signalMode: true },
+    select: { id: true, name: true, mt5Login: true, mt5Password: true, mt5Server: true, terminalPath: true, signalMode: true, lot: true },
   });
   return NextResponse.json(accounts);
 }

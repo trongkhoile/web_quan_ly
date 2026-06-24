@@ -17,7 +17,7 @@ export async function GET() {
   const accounts = await prisma.mt5Account.findMany({
     where: { userId: session.userId },
     orderBy: { createdAt: "desc" },
-    select: { id: true, name: true, mt5Login: true, mt5Server: true, isActive: true, signalMode: true, status: true, createdAt: true },
+    select: { id: true, name: true, mt5Login: true, mt5Server: true, isActive: true, signalMode: true, lot: true, status: true, createdAt: true },
   });
   return NextResponse.json(accounts);
 }
@@ -70,6 +70,15 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "signalMode không hợp lệ" }, { status: 400 });
     await prisma.mt5Account.update({ where: { id }, data: { signalMode } });
     return NextResponse.json({ ok: true, signalMode });
+  }
+
+  const lotParam = req.nextUrl.searchParams.get("lot");
+  if (lotParam !== null) {
+    const lot = parseFloat(lotParam);
+    if (isNaN(lot) || lot <= 0 || lot > 100)
+      return NextResponse.json({ error: "Lot không hợp lệ (0.01 – 100)" }, { status: 400 });
+    await prisma.mt5Account.update({ where: { id }, data: { lot } });
+    return NextResponse.json({ ok: true, lot });
   }
 
   const updated = await prisma.mt5Account.update({

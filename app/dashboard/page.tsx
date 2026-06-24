@@ -10,6 +10,7 @@ const NAVY = "#0d2137";
 type Account = {
   id: string; name: string; mt5Login: string; mt5Server: string;
   isActive: boolean; signalMode: "simple" | "dca" | "both";
+  lot: number;
   status: "pending" | "connected" | "failed"; createdAt: string;
 };
 type User = { name: string; email: string; isAdmin: boolean };
@@ -30,6 +31,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [toggling, setToggling] = useState<string | null>(null);
   const [changingMode, setChangingMode] = useState<string | null>(null);
+  const [editingLot, setEditingLot] = useState<string | null>(null);
+  const [lotInputs, setLotInputs] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -98,6 +101,15 @@ export default function DashboardPage() {
       const res = await fetch(`/api/accounts?id=${acc.id}&signalMode=${mode}`, { method: "PATCH" });
       if (res.ok) fetchAccounts();
     } finally { setChangingMode(null); }
+  }
+
+  async function handleLotSave(acc: Account) {
+    const val = parseFloat(lotInputs[acc.id] ?? "");
+    if (isNaN(val) || val <= 0) return;
+    try {
+      const res = await fetch(`/api/accounts?id=${acc.id}&lot=${val}`, { method: "PATCH" });
+      if (res.ok) { fetchAccounts(); setEditingLot(null); }
+    } catch { /* ignore */ }
   }
 
   async function handleDelete(id: string, name: string) {
@@ -292,20 +304,50 @@ export default function DashboardPage() {
                           </button>
                         </div>
                       </div>
-                      {/* Hàng dưới: signal mode buttons */}
+                      {/* Hàng dưới: signal mode + lot */}
                       {acc.status === "connected" && (
-                        <div className="flex gap-1.5 mt-3 pt-3 border-t border-gray-100">
-                          <span className="text-xs text-gray-400 self-center mr-1">Tín hiệu:</span>
-                          {(["simple", "dca", "both"] as const).map((m) => (
-                            <button key={m} onClick={() => handleSignalMode(acc, m)}
-                              disabled={changingMode === acc.id}
-                              className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition ${acc.signalMode === m
-                                ? "text-white border-transparent"
-                                : "text-gray-400 border-gray-200 hover:border-[#00b894] hover:text-[#00b894]"}`}
-                              style={acc.signalMode === m ? { background: T } : {}}>
-                              {m === "simple" ? "Lệnh đơn" : m === "dca" ? "DCA" : "Cả hai"}
-                            </button>
-                          ))}
+                        <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                          {/* Signal mode */}
+                          <div className="flex flex-wrap gap-1.5 items-center">
+                            <span className="text-xs text-gray-400 shrink-0">Tín hiệu:</span>
+                            {(["simple", "dca", "both"] as const).map((m) => (
+                              <button key={m} onClick={() => handleSignalMode(acc, m)}
+                                disabled={changingMode === acc.id}
+                                className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition ${acc.signalMode === m
+                                  ? "text-white border-transparent"
+                                  : "text-gray-400 border-gray-200 hover:border-[#00b894] hover:text-[#00b894]"}`}
+                                style={acc.signalMode === m ? { background: T } : {}}>
+                                {m === "simple" ? "Lệnh đơn" : m === "dca" ? "DCA" : "Cả hai"}
+                              </button>
+                            ))}
+                          </div>
+                          {/* Lot */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 shrink-0">Lot:</span>
+                            {editingLot === acc.id ? (
+                              <>
+                                <input
+                                  type="number" step="0.01" min="0.01" max="100"
+                                  value={lotInputs[acc.id] ?? ""}
+                                  onChange={e => setLotInputs(p => ({ ...p, [acc.id]: e.target.value }))}
+                                  onKeyDown={e => { if (e.key === "Enter") handleLotSave(acc); if (e.key === "Escape") setEditingLot(null); }}
+                                  className="w-20 border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-[#00b894]"
+                                  autoFocus
+                                />
+                                <button onClick={() => handleLotSave(acc)}
+                                  className="text-xs px-2 py-1 rounded-lg text-white"
+                                  style={{ background: T }}>Lưu</button>
+                                <button onClick={() => setEditingLot(null)}
+                                  className="text-xs px-2 py-1 rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50">Hủy</button>
+                              </>
+                            ) : (
+                              <button onClick={() => { setEditingLot(acc.id); setLotInputs(p => ({ ...p, [acc.id]: String(acc.lot ?? 0.01) })); }}
+                                className="text-xs font-mono font-semibold px-2.5 py-1 rounded-full border border-gray-200 hover:border-[#00b894] hover:text-[#00b894] transition"
+                                style={{ color: NAVY }}>
+                                {acc.lot ?? 0.01}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>

@@ -13,7 +13,7 @@ def _api(method: str, path: str = "", **kwargs):
     return resp.json()
 
 
-def _to_tuple(acc) -> Tuple[str, str, int, str, str, Optional[str], str]:
+def _to_tuple(acc) -> Tuple[str, str, int, str, str, Optional[str], str, float]:
     return (
         acc["id"],
         acc["name"],
@@ -22,12 +22,13 @@ def _to_tuple(acc) -> Tuple[str, str, int, str, str, Optional[str], str]:
         acc["mt5Server"],
         acc.get("terminalPath"),
         acc.get("signalMode", "both"),
+        float(acc.get("lot", 0.01)),
     )
 
 
 def get_all_account_ids() -> dict[str, dict]:
-    """Trả về {id: {isActive, signalMode}} cho tất cả account."""
-    return {a["id"]: {"isActive": a["isActive"], "signalMode": a.get("signalMode", "both")}
+    """Trả về {id: {isActive, signalMode, lot}} cho tất cả account."""
+    return {a["id"]: {"isActive": a["isActive"], "signalMode": a.get("signalMode", "both"), "lot": float(a.get("lot", 0.01))}
             for a in _api("GET", "?type=all")}
 
 
