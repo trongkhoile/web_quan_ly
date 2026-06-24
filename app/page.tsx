@@ -8,8 +8,7 @@ export default function LandingPage() {
       {/* Navbar */}
       <nav className="fixed top-0 inset-x-0 z-50 bg-[#0a1628]">
         <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src="/logo.jpg" alt="UTRAL BOT PRO" className="h-10 w-auto rounded-lg" />
+          <div className="flex items-center">
             <div>
               <div className="text-[#14b8c8] font-black text-base leading-none tracking-wide">UTRAL BOT PRO</div>
               <div className="text-orange-400 text-[10px] font-semibold tracking-widest">PREMIUM TRADING</div>
