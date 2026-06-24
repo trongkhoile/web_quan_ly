@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Giao Dịch Tự Động",
-  description: "Kết nối tài khoản MT5 và để bot giao dịch sinh lời tự động 24/7",
+  title: "UTRAL BOT PRO - Premium Trading",
+  description: "UTRAL BOT PRO cung cấp các tín hiệu vào lệnh hiệu quả để hỗ trợ bạn đưa ra các quyết định đầu tư hiệu quả khi giao dịch",
 };
 
 export default function RootLayout({
