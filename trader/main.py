@@ -289,7 +289,7 @@ async def dispatch_signal(signal_text: str, signal: TradeSignal, source: str = "
 
     for aid, q in queues:
         mode = worker_signal_modes.get(aid, "both")
-        q.put((signal, mode))
+        q.put((signal, mode, source))
 
     results = []
     deadline = time.time() + 30

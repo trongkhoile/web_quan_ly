@@ -41,7 +41,7 @@ def _get_filling_mode(symbol_info) -> int:
     return mt5.ORDER_FILLING_RETURN
 
 
-def _open_order(signal: TradeSignal) -> str:
+def _open_order(signal: TradeSignal, comment: str = "TelegramSignal") -> str:
     symbol = _resolve_symbol(signal.symbol)
     symbol_info = mt5.symbol_info(symbol)
     if not symbol_info.visible:
@@ -65,7 +65,7 @@ def _open_order(signal: TradeSignal) -> str:
         "price":        price,
         "deviation":    20,
         "magic":        123456,
-        "comment":      "TelegramSignal",
+        "comment":      comment,
         "type_time":    mt5.ORDER_TIME_GTC,
         "type_filling": filling,
     }
@@ -101,7 +101,7 @@ def _open_order(signal: TradeSignal) -> str:
     return f"ticket={result.order}"
 
 
-def _open_dca_order(signal: TradeSignal, dca_price: float) -> str:
+def _open_dca_order(signal: TradeSignal, dca_price: float, comment: str = "TelegramDCA") -> str:
     """Đặt lệnh pending limit tại giá DCA."""
     symbol = _resolve_symbol(signal.symbol)
     symbol_info = mt5.symbol_info(symbol)
@@ -124,7 +124,7 @@ def _open_dca_order(signal: TradeSignal, dca_price: float) -> str:
         "price":        dca_price,
         "deviation":    20,
         "magic":        123456,
-        "comment":      "TelegramDCA",
+        "comment":      comment,
         "type_time":    mt5.ORDER_TIME_GTC,
         "type_filling": filling,
     }
@@ -420,10 +420,17 @@ def worker_process(
 
                 signal: TradeSignal
                 signal_mode: str
-                if isinstance(item, tuple):
+                source: str
+                if isinstance(item, tuple) and len(item) == 3:
+                    signal, signal_mode, source = item
+                elif isinstance(item, tuple):
                     signal, signal_mode = item
+                    source = "dca"
                 else:
-                    signal, signal_mode = item, "both"
+                    signal, signal_mode, source = item, "both", "dca"
+
+                # Comment cho lệnh MT5 theo nhóm tín hiệu
+                order_comment = "lenhdon" if source == "simple" else "dca"
 
                 if mt5.account_info() is None:
                     logging.warning("Mất kết nối MT5, đang kết nối lại...")
@@ -443,10 +450,10 @@ def worker_process(
                     else:
                         # Dùng lot của tài khoản (overrides signal.lot)
                         signal.lot = lot
-                        msg = _open_order(signal)
+                        msg = _open_order(signal, order_comment)
                         if has_dca:
                             try:
-                                msg += f" | {_open_dca_order(signal, signal.dca)}"
+                                msg += f" | {_open_dca_order(signal, signal.dca, order_comment)}"
                             except Exception as e:
                                 msg += f" | DCA thất bại: {e}"
 
