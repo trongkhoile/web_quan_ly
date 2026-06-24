@@ -116,11 +116,38 @@ export default function LandingPage() {
               <line x1="210" y1="200" x2="65"  y2="105" stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
             </svg>
 
-            {/* Center circle */}
-            <div className="absolute rounded-full flex flex-col items-center justify-center shadow-2xl anim-float1"
-              style={{ width:110, height:110, background:T, top:"50%", left:"50%", transform:"translate(-50%,-50%)", zIndex:10 }}>
-              <img src="/logo.jpg" alt="" className="w-14 h-14 rounded-full object-cover" />
-              <span className="text-white text-[10px] font-black tracking-wider mt-1">UTRAL BOT</span>
+            {/* Center — Globe */}
+            <div className="absolute anim-float1 flex flex-col items-center"
+              style={{ top:"50%", left:"50%", transform:"translate(-50%,-50%)", zIndex:10 }}>
+              {/* Sphere */}
+              <div style={{
+                width:108, height:108, borderRadius:"50%", position:"relative", overflow:"hidden",
+                background:"radial-gradient(circle at 34% 30%, #2dffc9 0%, #00c49a 30%, #00b894 58%, #006e4e 100%)",
+                boxShadow:"inset -5px -5px 14px rgba(0,0,0,0.22), inset 3px 3px 8px rgba(255,255,255,0.12), 0 8px 28px rgba(0,184,148,0.38)",
+              }}>
+                {/* Globe lines */}
+                <svg width="108" height="108" viewBox="0 0 108 108" style={{ position:"absolute", inset:0 }}>
+                  {/* Latitude lines */}
+                  <ellipse cx="54" cy="54" rx="52" ry="13" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="0.7"/>
+                  <ellipse cx="54" cy="54" rx="52" ry="26" fill="none" stroke="rgba(255,255,255,0.17)" strokeWidth="0.7"/>
+                  <ellipse cx="54" cy="54" rx="52" ry="39" fill="none" stroke="rgba(255,255,255,0.17)" strokeWidth="0.7"/>
+                  <line x1="2" y1="54" x2="106" y2="54" stroke="rgba(255,255,255,0.22)" strokeWidth="0.7"/>
+                  {/* Meridians — animated rx creates rotation illusion */}
+                  <ellipse cx="54" cy="54" ry="52" fill="none" stroke="rgba(255,255,255,0.32)" strokeWidth="0.8"
+                    style={{ rx:"52px", animation:"glob-meridian 5s linear infinite", animationDelay:"0s" }}/>
+                  <ellipse cx="54" cy="54" ry="52" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="0.7"
+                    style={{ rx:"52px", animation:"glob-meridian 5s linear infinite", animationDelay:"-1.67s" }}/>
+                  <ellipse cx="54" cy="54" ry="52" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="0.7"
+                    style={{ rx:"52px", animation:"glob-meridian 5s linear infinite", animationDelay:"-3.33s" }}/>
+                </svg>
+                {/* Specular highlight */}
+                <div style={{
+                  position:"absolute", top:"8%", left:"12%", width:"33%", height:"26%",
+                  background:"radial-gradient(ellipse, rgba(255,255,255,0.38) 0%, transparent 75%)",
+                  borderRadius:"50%", transform:"rotate(-22deg)",
+                }}/>
+              </div>
+              <span className="font-black text-[10px] tracking-widest mt-2" style={{ color:T }}>UTRAL BOT PRO</span>
             </div>
 
             {/* Satellites: top, top-right, right, bottom-right, bottom-left, top-left */}
