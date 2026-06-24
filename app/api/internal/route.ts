@@ -36,10 +36,31 @@ export async function PATCH(req: NextRequest) {
   return NextResponse.json({ ok: true });
 }
 
-// POST /api/internal — log trade
+// POST /api/internal — log trade signal OR push trade history
 export async function POST(req: NextRequest) {
   if (!checkSecret(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { signal, status, result } = await req.json();
+  const body = await req.json();
+
+  // Trade history push: { type: "trade", accountId, symbol, tradeType, lot, openPrice, closePrice, profit, openTime, closeTime }
+  if (body.type === "trade") {
+    const { accountId, symbol, tradeType, lot, openPrice, closePrice, profit, openTime, closeTime } = body;
+    await prisma.tradeHistory.create({
+      data: {
+        accountId, symbol,
+        type: tradeType,
+        lot: Number(lot),
+        openPrice: Number(openPrice),
+        closePrice: Number(closePrice),
+        profit: Number(profit),
+        openTime: new Date(openTime),
+        closeTime: new Date(closeTime),
+      },
+    });
+    return NextResponse.json({ ok: true });
+  }
+
+  // Default: signal log
+  const { signal, status, result } = body;
   await prisma.tradeLog.create({ data: { signal, status, result } });
   return NextResponse.json({ ok: true });
 }

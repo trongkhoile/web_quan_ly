@@ -17,18 +17,19 @@ model User {
 }
 
 model Mt5Account {
-  id           String   @id @default(cuid())
+  id           String         @id @default(cuid())
   userId       String?
-  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
   name         String
   mt5Login     String
   mt5Password  String
   mt5Server    String
   terminalPath String?
-  isActive     Boolean  @default(true)
-  status       String   @default("connected")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  isActive     Boolean        @default(true)
+  status       String         @default("connected")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  trades       TradeHistory[]
 
   @@unique([mt5Login, mt5Server])
 }
@@ -39,4 +40,19 @@ model TradeLog {
   status    String
   result    String?
   createdAt DateTime @default(now())
+}
+
+model TradeHistory {
+  id         String     @id @default(cuid())
+  accountId  String
+  account    Mt5Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  symbol     String
+  type       String
+  lot        Float
+  openPrice  Float
+  closePrice Float
+  profit     Float
+  openTime   DateTime
+  closeTime  DateTime
+  createdAt  DateTime   @default(now())
 }

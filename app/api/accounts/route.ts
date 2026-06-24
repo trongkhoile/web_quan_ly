@@ -51,6 +51,25 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// PATCH /api/accounts?id=xxx  — toggle isActive
+export async function PATCH(req: NextRequest) {
+  let session;
+  try { session = await requireSession(); }
+  catch { return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 }); }
+
+  const id = req.nextUrl.searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "Thiếu id" }, { status: 400 });
+
+  const account = await prisma.mt5Account.findUnique({ where: { id } });
+  if (!account || account.userId !== session.userId)
+    return NextResponse.json({ error: "Không có quyền" }, { status: 403 });
+
+  const updated = await prisma.mt5Account.update({
+    where: { id }, data: { isActive: !account.isActive },
+  });
+  return NextResponse.json({ ok: true, isActive: updated.isActive });
+}
+
 // DELETE /api/accounts?id=xxx
 export async function DELETE(req: NextRequest) {
   let session;
