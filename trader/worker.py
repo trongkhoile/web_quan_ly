@@ -142,6 +142,33 @@ def _open_dca_order(signal: TradeSignal, dca_price: float) -> str:
     return f"dca_ticket={result.order}"
 
 
+def _close_single_position(pos) -> bool:
+    tick = mt5.symbol_info_tick(pos.symbol)
+    if not tick:
+        return False
+    close_type = mt5.ORDER_TYPE_SELL if pos.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
+    price = tick.bid if close_type == mt5.ORDER_TYPE_SELL else tick.ask
+    result = mt5.order_send({
+        "action":       mt5.TRADE_ACTION_DEAL,
+        "symbol":       pos.symbol,
+        "volume":       pos.volume,
+        "type":         close_type,
+        "position":     pos.ticket,
+        "price":        price,
+        "deviation":    20,
+        "magic":        123456,
+        "comment":      "TelegramCloseAll",
+        "type_time":    mt5.ORDER_TIME_GTC,
+        "type_filling": mt5.ORDER_FILLING_IOC,
+    })
+    return bool(result and result.retcode == mt5.TRADE_RETCODE_DONE)
+
+
+def _cancel_pending(ticket: int) -> bool:
+    result = mt5.order_send({"action": mt5.TRADE_ACTION_REMOVE, "order": ticket})
+    return bool(result and result.retcode == mt5.TRADE_RETCODE_DONE)
+
+
 def _close_positions(symbol: str) -> str:
     symbol = _resolve_symbol(symbol)
     positions = mt5.positions_get(symbol=symbol)
@@ -227,6 +254,20 @@ def _monitor_positions(
                             }],
                         })
                         logging.info(f"[{name}] Lệnh đóng: {info['symbol']} profit={out.profit:.2f}")
+
+                        # TP/SL đóng → đóng các lệnh mở cùng symbol + hủy DCA pending
+                        if out.reason in (mt5.DEAL_REASON_TP, mt5.DEAL_REASON_SL):
+                            sym = info["symbol"]
+                            others = [p for p in (mt5.positions_get(symbol=sym) or [])
+                                      if p.magic == 123456]
+                            for pos in others:
+                                if _close_single_position(pos):
+                                    logging.info(f"[{name}] Đóng lệnh liên quan ticket={pos.ticket}")
+                            pending = [o for o in (mt5.orders_get(symbol=sym) or [])
+                                       if o.magic == 123456]
+                            for order in pending:
+                                if _cancel_pending(order.ticket):
+                                    logging.info(f"[{name}] Hủy DCA pending ticket={order.ticket}")
                 except Exception as e:
                     logging.warning(f"[{name}] Lỗi lấy deal ticket={ticket}: {e}")
 
