@@ -147,7 +147,7 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      <main className="mx-auto max-w-6xl px-6 py-8">
+      <main className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8">
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           {[
@@ -185,14 +185,16 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between gap-3">
                 <h2 className="text-lg font-bold" style={{ color: NAVY }}>Tài khoản MT5</h2>
                 {pendingId ? (
-                  <div className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold bg-gray-100 text-gray-400 cursor-not-allowed select-none">
-                    <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse shrink-0" />Đang kết nối...
+                  <div className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold bg-gray-100 text-gray-400 cursor-not-allowed select-none shrink-0">
+                    <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse shrink-0" />
+                    <span className="hidden sm:inline">Đang kết nối...</span>
+                    <span className="sm:hidden">Chờ...</span>
                   </div>
                 ) : (
                   <button onClick={() => { setShowForm(!showForm); setMessage(null); }}
-                    className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold text-white transition"
+                    className="inline-flex items-center gap-1.5 rounded-xl px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white transition shrink-0"
                     style={{ background: showForm ? "#6b7280" : T }}>
-                    {showForm ? "✕ Hủy" : "+ Thêm tài khoản"}
+                    {showForm ? "✕ Hủy" : <><span className="sm:hidden">+ Thêm</span><span className="hidden sm:inline">+ Thêm tài khoản</span></>}
                   </button>
                 )}
               </div>
@@ -246,64 +248,66 @@ export default function DashboardPage() {
                 <div className="space-y-3">
                   {accounts.map((acc) => (
                     <div key={acc.id}
-                      className="group bg-white border border-gray-200 hover:border-[#00b894]/50 rounded-2xl p-4 flex items-center justify-between gap-3 transition shadow-sm">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                          style={{ background: "rgba(0,184,148,0.08)", border: "1.5px solid rgba(0,184,148,0.2)" }}>
-                          <span className="text-xs font-bold" style={{ color: T }}>MT5</span>
-                        </div>
-                        <div className="min-w-0">
-                          <span className="font-semibold text-sm" style={{ color: NAVY }}>{acc.name}</span>
-                          <div className="mt-1">
-                            {acc.status === "pending" ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 border border-orange-200 px-2 py-0.5 text-xs font-medium text-orange-600">
-                                <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />Đang kết nối...
-                              </span>
-                            ) : acc.status === "failed" ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-200 px-2 py-0.5 text-xs font-medium text-red-500">Sai thông tin</span>
-                            ) : acc.isActive ? (
-                              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-                                style={{ background: "rgba(0,184,148,0.08)", border: "1px solid rgba(0,184,148,0.25)", color: T }}>
-                                <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: T }} />Hoạt động
-                              </span>
-                            ) : (
-                              <span className="rounded-full bg-gray-100 border border-gray-200 px-2 py-0.5 text-xs font-medium text-gray-400">Tắt</span>
-                            )}
+                      className="group bg-white border border-gray-200 hover:border-[#00b894]/50 rounded-2xl p-4 transition shadow-sm">
+                      {/* Hàng trên: icon + info + toggle + xóa */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                            style={{ background: "rgba(0,184,148,0.08)", border: "1.5px solid rgba(0,184,148,0.2)" }}>
+                            <span className="text-xs font-bold" style={{ color: T }}>MT5</span>
                           </div>
-                          <p className="text-xs text-gray-400 mt-0.5 font-mono truncate">{acc.mt5Login} · {acc.mt5Server}</p>
-                          {acc.status === "connected" && (
-                            <div className="flex gap-1 mt-1.5">
-                              {(["simple", "dca", "both"] as const).map((m) => (
-                                <button key={m} onClick={() => handleSignalMode(acc, m)}
-                                  disabled={changingMode === acc.id}
-                                  className={`px-2 py-0.5 rounded-full text-xs font-semibold border transition ${acc.signalMode === m
-                                    ? "text-white border-transparent"
-                                    : "text-gray-400 border-gray-200 hover:border-[#00b894] hover:text-[#00b894]"
-                                  }`}
-                                  style={acc.signalMode === m ? { background: T, borderColor: T } : {}}>
-                                  {m === "simple" ? "Lệnh đơn" : m === "dca" ? "DCA" : "Cả hai"}
-                                </button>
-                              ))}
+                          <div className="min-w-0">
+                            <span className="font-semibold text-sm" style={{ color: NAVY }}>{acc.name}</span>
+                            <div className="mt-1">
+                              {acc.status === "pending" ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 border border-orange-200 px-2 py-0.5 text-xs font-medium text-orange-600">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />Đang kết nối...
+                                </span>
+                              ) : acc.status === "failed" ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-200 px-2 py-0.5 text-xs font-medium text-red-500">Sai thông tin</span>
+                              ) : acc.isActive ? (
+                                <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+                                  style={{ background: "rgba(0,184,148,0.08)", border: "1px solid rgba(0,184,148,0.25)", color: T }}>
+                                  <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: T }} />Hoạt động
+                                </span>
+                              ) : (
+                                <span className="rounded-full bg-gray-100 border border-gray-200 px-2 py-0.5 text-xs font-medium text-gray-400">Tắt</span>
+                              )}
                             </div>
+                            <p className="text-xs text-gray-400 mt-0.5 font-mono truncate">{acc.mt5Login} · {acc.mt5Server}</p>
+                          </div>
+                        </div>
+                        {/* Toggle + Xóa */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {acc.status === "connected" && (
+                            <button onClick={() => handleToggle(acc)} disabled={toggling === acc.id}
+                              title={acc.isActive ? "Tắt bot" : "Bật bot"}
+                              className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${acc.isActive ? "bg-[#00b894]" : "bg-gray-200"} ${toggling === acc.id ? "opacity-50" : ""}`}>
+                              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${acc.isActive ? "translate-x-5" : "translate-x-0"}`} />
+                            </button>
                           )}
+                          <button onClick={() => handleDelete(acc.id, acc.name)}
+                            className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs text-red-500 hover:bg-red-50 transition md:opacity-0 md:group-hover:opacity-100">
+                            Xóa
+                          </button>
                         </div>
                       </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        {/* Toggle */}
-                        {acc.status === "connected" && (
-                          <button onClick={() => handleToggle(acc)} disabled={toggling === acc.id}
-                            title={acc.isActive ? "Tắt bot" : "Bật bot"}
-                            className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${acc.isActive ? "bg-[#00b894]" : "bg-gray-200"} ${toggling === acc.id ? "opacity-50" : ""}`}>
-                            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${acc.isActive ? "translate-x-5" : "translate-x-0"}`} />
-                          </button>
-                        )}
-                        {/* Delete */}
-                        <button onClick={() => handleDelete(acc.id, acc.name)}
-                          className="rounded-lg border border-red-200 px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 transition md:opacity-0 md:group-hover:opacity-100">
-                          Xóa
-                        </button>
-                      </div>
+                      {/* Hàng dưới: signal mode buttons */}
+                      {acc.status === "connected" && (
+                        <div className="flex gap-1.5 mt-3 pt-3 border-t border-gray-100">
+                          <span className="text-xs text-gray-400 self-center mr-1">Tín hiệu:</span>
+                          {(["simple", "dca", "both"] as const).map((m) => (
+                            <button key={m} onClick={() => handleSignalMode(acc, m)}
+                              disabled={changingMode === acc.id}
+                              className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition ${acc.signalMode === m
+                                ? "text-white border-transparent"
+                                : "text-gray-400 border-gray-200 hover:border-[#00b894] hover:text-[#00b894]"}`}
+                              style={acc.signalMode === m ? { background: T } : {}}>
+                              {m === "simple" ? "Lệnh đơn" : m === "dca" ? "DCA" : "Cả hai"}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
