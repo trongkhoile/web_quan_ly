@@ -437,8 +437,8 @@ def worker_process(
                     if not _reconnect(terminal_path, login, password, server):
                         raise RuntimeError(f"Kết nối lại thất bại: {mt5.last_error()}")
 
-                if signal.action in ("CLOSE", "CLOSE_ALL"):
-                    msg = _close_all_positions() if signal.action == "CLOSE_ALL" else _close_positions(signal.symbol)
+                if signal.action == "CLOSE":
+                    msg = _close_positions(signal.symbol)
                 else:
                     has_dca = signal.dca is not None
 
