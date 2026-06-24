@@ -114,8 +114,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 inset-x-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100">
         <div className="mx-auto max-w-6xl px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-0.5">
-            <span className="font-black text-2xl leading-none text-[#0d2137]">U</span>
-            <span className="font-black text-xl text-[#0d2137] leading-none">TRAL BOT PRO</span>
+            <span className="font-black text-xl text-[#0d2137] leading-none">UTRAL BOT PRO</span>
           </Link>
           <div className="hidden md:flex items-center gap-7"></div>
           <div className="flex items-center gap-3">
@@ -396,8 +395,7 @@ export default function LandingPage() {
             {/* Brand */}
             <div className="flex-1 max-w-xs">
               <div className="flex items-center gap-0.5 mb-3">
-                <span className="font-black text-2xl leading-none text-[#0d2137]">U</span>
-                <span className="font-black text-xl text-[#0d2137] leading-none">TRAL BOT PRO</span>
+                <span className="font-black text-xl text-[#0d2137] leading-none">UTRAL BOT PRO</span>
               </div>
               <p className="text-gray-500 text-xs leading-relaxed mb-5">
                 UTRAL BOT PRO là công cụ xây dựng bot giao dịch tự động được hỗ trợ bởi AI. Được thiết kế cho mọi thị trường. Hỗ trợ tích hợp ChatGPT để có phân tích chuyên sâu hơn.
