@@ -111,11 +111,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex flex-col items-center gap-1 group">
             <div className="flex items-center gap-2">
-              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                <rect width="32" height="32" rx="7" fill="#14b8c8" fillOpacity="0.2" />
-                <path d="M6 24 L11 10 L16 19 L20 13 L26 24" stroke="#14b8c8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M11 7 L16 19 L21 7" stroke="#f97316" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <img src="/logo.jpg" alt="UTRAL BOT PRO" className="h-10 w-auto rounded-lg" />
               <span className="text-[#14b8c8] font-black text-xl tracking-wide group-hover:opacity-80 transition">
                 UTRAL BOT PRO
               </span>

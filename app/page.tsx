@@ -9,11 +9,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 inset-x-0 z-50 bg-[#0a1628]">
         <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <svg width="38" height="38" viewBox="0 0 38 38" fill="none">
-              <rect width="38" height="38" rx="9" fill="#14b8c8" fillOpacity="0.2" />
-              <path d="M7 28 L13 12 L19 22 L24 15 L31 28" stroke="#14b8c8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M14 9 L19 21 L24 9" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <img src="/logo.jpg" alt="UTRAL BOT PRO" className="h-10 w-auto rounded-lg" />
             <div>
               <div className="text-[#14b8c8] font-black text-base leading-none tracking-wide">UTRAL BOT PRO</div>
               <div className="text-orange-400 text-[10px] font-semibold tracking-widest">PREMIUM TRADING</div>
@@ -74,12 +70,8 @@ export default function LandingPage() {
               <div className="absolute inset-0 bg-[#14b8c8]/20 rounded-full blur-3xl scale-150 -z-10" />
               {/* Phone */}
               <div className="w-56 h-[440px] bg-gray-200 rounded-[3rem] border-[10px] border-gray-300 shadow-2xl flex items-center justify-center rotate-6">
-                <div className="w-full h-full bg-[#0a1628] rounded-[2.2rem] flex flex-col items-center justify-center gap-3">
-                  <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
-                    <rect width="72" height="72" rx="16" fill="#14b8c8" fillOpacity="0.15" />
-                    <path d="M14 54 L24 24 L36 44 L46 30 L58 54" stroke="#14b8c8" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M24 16 L36 44 L48 16" stroke="#f97316" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                <div className="w-full h-full bg-[#0a1628] rounded-[2.2rem] flex flex-col items-center justify-center gap-3 p-6">
+                  <img src="/logo.jpg" alt="UTRAL BOT PRO" className="w-24 h-24 rounded-2xl object-cover" />
                   <div className="text-[#14b8c8] font-black text-base tracking-wide">UTRAL BOT</div>
                   <div className="text-orange-400 font-bold text-sm tracking-widest">PRO</div>
                 </div>
@@ -213,10 +205,7 @@ export default function LandingPage() {
             {/* Brand */}
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                  <rect width="32" height="32" rx="7" fill="#14b8c8" fillOpacity="0.2" />
-                  <path d="M6 24 L11 10 L16 19 L20 13 L26 24" stroke="#14b8c8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <img src="/logo.jpg" alt="UTRAL BOT PRO" className="h-9 w-auto rounded-lg" />
                 <span className="text-[#14b8c8] font-black text-base tracking-wide">UTRAL BOT PRO</span>
               </div>
               <div className="text-orange-400 text-[10px] font-bold tracking-widest mb-5 ml-10">PREMIUM TRADING</div>

@@ -117,10 +117,7 @@ export default function DashboardPage() {
       <nav className="border-b border-[#1e3558] bg-[#0d1f3c] sticky top-0 z-40">
         <div className="mx-auto max-w-6xl px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-              <rect width="28" height="28" rx="6" fill="#14b8c8" fillOpacity="0.2" />
-              <path d="M5 21 L9 9 L14 17 L18 12 L23 21" stroke="#14b8c8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <img src="/logo.jpg" alt="UTRAL BOT PRO" className="h-8 w-auto rounded-md" />
             <div>
               <div className="text-[#14b8c8] font-black text-sm leading-none tracking-wide">UTRAL BOT PRO</div>
               <div className="text-orange-400 text-[9px] font-bold tracking-widest">PREMIUM TRADING</div>
