@@ -56,12 +56,14 @@ export default function DashboardPage() {
   }, [pendingId]);
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault(); setLoading(true); setMessage(null);
+    e.preventDefault();
+    if (pendingId) return;
+    setLoading(true); setMessage(null);
     try {
       const res = await fetch("/api/accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setMessage({ type: "success", text: "Đang kết nối tới MT5, vui lòng chờ..." });
+      setMessage({ type: "success", text: "Đang kết nối tới MT5, vui lòng chờ kết quả trước khi thêm tài khoản mới..." });
       setForm({ name: "", mt5Login: "", mt5Password: "", mt5Server: "" });
       setShowForm(false); fetchAccounts(); setPendingId(data.id);
     } catch (err) { setMessage({ type: "error", text: (err as Error).message }); } finally { setLoading(false); }
@@ -136,13 +138,20 @@ export default function DashboardPage() {
         <div className="grid lg:grid-cols-5 gap-8">
           {/* Left: Accounts */}
           <div className="lg:col-span-3 space-y-5">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-bold" style={{ color: NAVY }}>Tài khoản MT5</h2>
-              <button onClick={() => { setShowForm(!showForm); setMessage(null); }}
-                className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold text-white transition"
-                style={{ background: showForm ? "#6b7280" : T }}>
-                {showForm ? "✕ Hủy" : "+ Thêm tài khoản"}
-              </button>
+              {pendingId ? (
+                <div className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold bg-gray-100 text-gray-400 cursor-not-allowed select-none">
+                  <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse shrink-0" />
+                  Đang kết nối...
+                </div>
+              ) : (
+                <button onClick={() => { setShowForm(!showForm); setMessage(null); }}
+                  className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold text-white transition"
+                  style={{ background: showForm ? "#6b7280" : T }}>
+                  {showForm ? "✕ Hủy" : "+ Thêm tài khoản"}
+                </button>
+              )}
             </div>
 
             {showForm && (
