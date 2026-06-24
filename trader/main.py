@@ -8,6 +8,7 @@ Các tài khoản cũ KHÔNG bị ảnh hưởng gì khi có tài khoản mới.
 
 import asyncio
 import logging
+import msvcrt
 import multiprocessing as mp
 import os
 import sys
@@ -44,6 +45,33 @@ BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 GROUP_ID  = int(os.environ["TELEGRAM_GROUP_ID"])
 BASE_EXE  = os.environ.get("MT5_TERMINAL_EXE", r"C:\Program Files\MetaTrader 5\terminal64.exe")
 
+# ── Single-instance lock (Windows) ────────────────────────────────────────────
+_LOCK_FILE_PATH = os.path.join(os.path.dirname(__file__), ".trader.lock")
+_lock_file = None
+
+def _acquire_lock():
+    global _lock_file
+    _lock_file = open(_LOCK_FILE_PATH, "w")
+    try:
+        msvcrt.locking(_lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+    except OSError:
+        print("❌ Đã có tiến trình main.py đang chạy.")
+        print("   Chạy lệnh sau để dừng nó: Stop-Process -Name python -Force")
+        sys.exit(1)
+
+def _release_lock():
+    global _lock_file
+    if _lock_file:
+        try:
+            msvcrt.locking(_lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+            _lock_file.close()
+        except Exception:
+            pass
+        try:
+            os.remove(_LOCK_FILE_PATH)
+        except Exception:
+            pass
+
 # ── State ─────────────────────────────────────────────────────────────────
 mp_result_queue: mp.Queue = mp.Queue()          # Workers → main (multiprocessing Queue)
 mp_at_lock:      mp.Lock  = mp.Lock()           # Cross-process lock cho keyboard khi bật Algo Trading
@@ -51,21 +79,13 @@ trade_results:  asyncio.Queue                   # Kết quả trade (asyncio Que
 worker_queues:  dict[str, mp.Queue] = {}        # account_id → input queue của worker
 worker_terminal_paths: dict[str, str] = {}      # account_id → terminal_path
 worker_procs:   list[mp.Process]    = []
-provisioned_ids: set[str]           = set()
+provisioned_ids: set[str]           = set()     # Đã được provision (ngăn provision trùng)
+inactive_ids:    set[str]           = set()     # isActive=False (không nhận lệnh)
 
 
 # ── Background task: drain mp.Queue → asyncio.Queue ───────────────────────
-#
-# mp.Queue.get() là blocking call, không thể gọi trực tiếp trong async.
-# drain_result_queue chạy vòng lặp trong thread riêng (run_in_executor),
-# forward kết quả sang asyncio.Queue để các coroutine dùng non-blocking.
 
 async def drain_result_queue():
-    """
-    Đọc kết quả từ tất cả workers liên tục mà không block event loop.
-    - Startup message  → log ngay
-    - Trade result     → đẩy vào trade_results (asyncio.Queue)
-    """
     loop = asyncio.get_event_loop()
     while True:
         try:
@@ -85,14 +105,13 @@ async def drain_result_queue():
                     logger.error(f"[{name}] ❌ Kết nối MT5 thất bại: {result.get('message','')}")
                     if acc_id:
                         update_account_status(acc_id, "failed")
-                    # Dọn worker và kill terminal
                     worker_queues.pop(acc_id, None)
                     t_path = worker_terminal_paths.pop(acc_id, None)
                     provisioned_ids.discard(acc_id)
                     if t_path:
                         await asyncio.get_event_loop().run_in_executor(None, kill_terminal, t_path)
+
             elif result.get("trade_history"):
-                # Lịch sử lệnh đóng (TP/SL hoặc CLOSE) → push lên web
                 acc_id = result.get("account_id", "")
                 for deal in result["trade_history"]:
                     try:
@@ -102,11 +121,11 @@ async def drain_result_queue():
                         logger.info(f"[{result['name']}] 📊 Lưu lịch sử: {deal['symbol']} {deal['tradeType']} profit={deal['profit']}")
                     except Exception as e:
                         logger.error(f"Lỗi lưu lịch sử lệnh: {e}")
+
             else:
                 await trade_results.put(result)
 
         except Exception:
-            # get() timeout hoặc queue trống → tiếp tục vòng lặp
             await asyncio.sleep(0.05)
 
 
@@ -118,31 +137,25 @@ def _provision_blocking(acc_id: str, name: str, login: int, password: str,
         logger.error(f"Không tìm thấy MT5: {BASE_EXE}")
         return False
 
-    # 1. Tạo thư mục + copy exe (thread-safe, atomic)
     if not terminal_path or not os.path.exists(terminal_path):
         terminal_path = allocate_terminal(BASE_EXE, login=login, server=server)
         set_terminal_path(acc_id, terminal_path)
         logger.info(f"[{name}] Terminal: {terminal_path}")
     else:
-        # Terminal đã tồn tại — vẫn cập nhật common.ini để đảm bảo Algo Trading bật
         config_dir = os.path.join(os.path.dirname(terminal_path), "config")
         try:
             _update_common_ini(config_dir, login, server)
         except Exception as e:
             logger.warning(f"[{name}] Không cập nhật được common.ini: {e}")
 
-    # 2. Launch nếu chưa chạy
     if not is_terminal_running(terminal_path):
         logger.info(f"[{name}] Đang khởi động MT5...")
         launch_terminal(terminal_path, login, password, server)
-        # Chờ: MT5 kết nối broker (~10s) + Ctrl+E enable Algo Trading (~5s)
         time.sleep(25)
 
-    # 3. Spawn worker process
     q: mp.Queue = mp.Queue()
     worker_queues[acc_id] = q
     worker_terminal_paths[acc_id] = terminal_path
-    provisioned_ids.add(acc_id)
 
     proc = mp.Process(
         target=worker_process,
@@ -158,7 +171,6 @@ def _provision_blocking(acc_id: str, name: str, login: int, password: str,
 
 async def provision_account(acc_id: str, name: str, login: int, password: str,
                             server: str, terminal_path: str | None):
-    """Wrapper async: chạy provision trong thread pool → không block event loop."""
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(
         None, _provision_blocking,
@@ -174,28 +186,28 @@ async def load_existing_accounts():
         logger.info("Chưa có tài khoản. Chờ người dùng đăng ký qua web...")
         return
 
+    # Đánh dấu ngay để watch_new_accounts không provision trùng
+    for acc in accounts:
+        provisioned_ids.add(acc[0])
+
     logger.info(f"Provision {len(accounts)} tài khoản hiện có...")
     tasks = [
         provision_account(acc_id, name, int(login), password, server, terminal_path)
         for acc_id, name, login, password, server, terminal_path in accounts
     ]
-    await asyncio.gather(*tasks)   # Tất cả provision song song
+    await asyncio.gather(*tasks)
 
 
 # ── Background: theo dõi tài khoản mới ────────────────────────────────────
 
 async def watch_new_accounts():
-    """
-    Cứ 10 giây kiểm tra DB 1 lần.
-    - Tài khoản connected chưa provision (sau restart service) → provision lại
-    - Tài khoản pending (mới đăng ký) → provision để xác thực kết nối
-    """
     while True:
         await asyncio.sleep(10)
         try:
             for acc in get_active_accounts() + get_pending_accounts():
                 acc_id = acc[0]
                 if acc_id not in provisioned_ids:
+                    provisioned_ids.add(acc_id)  # Đánh dấu ngay, tránh provision trùng
                     logger.info(f"[{acc[1]}] Phát hiện tài khoản mới → provision")
                     asyncio.create_task(
                         provision_account(acc_id, acc[1], int(acc[2]), acc[3], acc[4], acc[5])
@@ -207,30 +219,28 @@ async def watch_new_accounts():
 # ── Background: phát hiện account bị xóa/tắt → dừng worker + kill terminal ─
 
 async def watch_accounts_changes():
-    """
-    Cứ 30 giây so sánh danh sách worker đang chạy với DB.
-    Nếu account bị xóa hoặc isActive=False → gửi SHUTDOWN cho worker và kill terminal.
-    """
     while True:
         await asyncio.sleep(30)
         try:
             active_ids = {a[0] for a in get_active_accounts()}
-            removed = [aid for aid in list(worker_queues.keys()) if aid not in active_ids]
-            for acc_id in removed:
-                logger.info(f"Account {acc_id} đã bị xóa — dừng worker và kill terminal...")
-                # Gửi lệnh tắt worker
+
+            # Cập nhật inactive_ids để dispatch_signal không gửi lệnh vào account tắt
+            inactive_ids.clear()
+            inactive_ids.update(aid for aid in worker_queues if aid not in active_ids)
+
+            for acc_id in list(inactive_ids):
+                logger.info(f"Account {acc_id} bị tắt/xóa — dừng worker...")
                 try:
                     worker_queues[acc_id].put(SHUTDOWN_SIGNAL)
                 except Exception:
                     pass
-                # Kill terminal process
                 t_path = worker_terminal_paths.get(acc_id)
                 if t_path:
                     await asyncio.get_event_loop().run_in_executor(None, kill_terminal, t_path)
-                # Dọn state
                 worker_queues.pop(acc_id, None)
                 worker_terminal_paths.pop(acc_id, None)
                 provisioned_ids.discard(acc_id)
+
         except Exception as e:
             logger.error(f"watch_accounts_changes lỗi: {e}")
 
@@ -238,7 +248,8 @@ async def watch_accounts_changes():
 # ── Xử lý tín hiệu Telegram ────────────────────────────────────────────────
 
 async def dispatch_signal(signal_text: str, signal: TradeSignal):
-    queues = list(worker_queues.items())
+    # Chỉ gửi tới account đang active (bỏ qua account đã tắt toggle)
+    queues = [(aid, q) for aid, q in worker_queues.items() if aid not in inactive_ids]
     n = len(queues)
 
     if n == 0:
@@ -248,11 +259,9 @@ async def dispatch_signal(signal_text: str, signal: TradeSignal):
     logger.info(f"▶ {signal.action} {signal.symbol} → {n} tài khoản")
     t_start = time.time()
 
-    # Gửi tín hiệu vào tất cả worker queues cùng lúc (non-blocking)
     for _, q in queues:
         q.put(signal)
 
-    # Thu kết quả qua asyncio.Queue (hoàn toàn non-blocking)
     results = []
     deadline = time.time() + 30
     while len(results) < n:
@@ -284,7 +293,7 @@ async def dispatch_signal(signal_text: str, signal: TradeSignal):
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = update.message or update.channel_post  # channel_post cho group/channel, message cho private chat
+    message = update.message or update.channel_post
     if not message or not message.text:
         return
     if message.chat.id != GROUP_ID:
@@ -310,16 +319,12 @@ async def run():
     logger.info("  GIAO DỊCH TỰ ĐỘNG — PARALLEL MT5")
     logger.info("=" * 55)
 
-    # Khởi chạy tất cả background tasks
     asyncio.create_task(drain_result_queue())
     asyncio.create_task(watch_new_accounts())
     asyncio.create_task(watch_accounts_changes())
 
-    # Load tài khoản hiện có
     await load_existing_accounts()
 
-    # Chạy bot — dùng async context manager thay vì run_polling()
-    # vì mình đã trong asyncio.run() rồi, không thể gọi run_polling() lồng vào
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & filters.Chat(GROUP_ID), handle_message))
 
@@ -330,17 +335,22 @@ async def run():
         )
         logger.info(f"Bot đang chạy | Group: {GROUP_ID}")
         try:
-            await asyncio.Event().wait()   # Chạy mãi cho đến khi Ctrl+C
+            await asyncio.Event().wait()
         except (asyncio.CancelledError, KeyboardInterrupt):
             pass
         finally:
             await app.updater.stop()
             await app.stop()
+            _release_lock()
 
 
 def main():
+    _acquire_lock()
     mp.set_start_method("spawn", force=True)
-    asyncio.run(run())
+    try:
+        asyncio.run(run())
+    finally:
+        _release_lock()
 
 
 if __name__ == "__main__":
