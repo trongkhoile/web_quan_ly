@@ -429,22 +429,25 @@ def worker_process(
                     if not _reconnect(terminal_path, login, password, server):
                         raise RuntimeError(f"Kết nối lại thất bại: {mt5.last_error()}")
 
-                if signal.action == "CLOSE_ALL":
-                    msg = _close_all_positions()
-                elif signal.action == "CLOSE":
-                    msg = _close_positions(signal.symbol)
+                if signal.action in ("CLOSE", "CLOSE_ALL"):
+                    msg = _close_all_positions() if signal.action == "CLOSE_ALL" else _close_positions(signal.symbol)
                 else:
-                    msgs = []
-                    # Lệnh đơn (market order)
-                    if signal_mode in ("simple", "both"):
-                        msgs.append(_open_order(signal))
-                    # Lệnh DCA (pending limit)
-                    if signal.dca is not None and signal_mode in ("dca", "both"):
-                        try:
-                            msgs.append(_open_dca_order(signal, signal.dca))
-                        except Exception as e:
-                            msgs.append(f"DCA thất bại: {e}")
-                    msg = " | ".join(msgs) if msgs else "Bỏ qua (không khớp signal mode)"
+                    has_dca = signal.dca is not None
+
+                    # Lọc theo signal mode
+                    if signal_mode == "simple" and has_dca:
+                        msg = "Bỏ qua (tín hiệu DCA, chế độ lệnh đơn)"
+                    elif signal_mode == "dca" and not has_dca:
+                        msg = "Bỏ qua (tín hiệu không có DCA, chế độ DCA)"
+                    else:
+                        # Đặt lệnh market
+                        msg = _open_order(signal)
+                        # Đặt DCA pending nếu có
+                        if has_dca:
+                            try:
+                                msg += f" | {_open_dca_order(signal, signal.dca)}"
+                            except Exception as e:
+                                msg += f" | DCA thất bại: {e}"
 
                 result_queue.put({
                     "account_id": account_id,
