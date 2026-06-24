@@ -114,7 +114,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 inset-x-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100">
         <div className="mx-auto max-w-6xl px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-0.5">
-            <span className="font-black text-2xl leading-none" style={{ color: T }}>U</span>
+            <span className="font-black text-2xl leading-none text-[#0d2137]">U</span>
             <span className="font-black text-xl text-[#0d2137] leading-none">TRAL BOT PRO</span>
           </Link>
           <div className="hidden md:flex items-center gap-7"></div>
@@ -134,7 +134,7 @@ export default function LandingPage() {
           <div className="flex-1 max-w-lg">
             <h1 className="text-5xl font-black leading-tight mb-5 text-[#0d2137]">
               Xây dựng<br />
-              <span className="transition-opacity duration-300" style={{ color: T, opacity: show ? 1 : 0 }}>
+              <span className="transition-opacity duration-300 whitespace-nowrap" style={{ color: T, opacity: show ? 1 : 0 }}>
                 Giao dịch {heroWords[wordIdx]}
               </span>
               <span className="anim-blink" style={{ color: T }}>|</span>
@@ -396,7 +396,7 @@ export default function LandingPage() {
             {/* Brand */}
             <div className="flex-1 max-w-xs">
               <div className="flex items-center gap-0.5 mb-3">
-                <span className="font-black text-2xl leading-none" style={{ color: T }}>U</span>
+                <span className="font-black text-2xl leading-none text-[#0d2137]">U</span>
                 <span className="font-black text-xl text-[#0d2137] leading-none">TRAL BOT PRO</span>
               </div>
               <p className="text-gray-500 text-xs leading-relaxed mb-5">
