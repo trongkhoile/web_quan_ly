@@ -16,6 +16,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Email hoặc mật khẩu không đúng" }, { status: 401 });
   }
 
+  if (user.isBlocked) {
+    return NextResponse.json({ error: "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ admin." }, { status: 403 });
+  }
+
+  if (!user.isApproved) {
+    return NextResponse.json({ error: "Tài khoản của bạn đang chờ admin duyệt." }, { status: 403 });
+  }
+
   // Tự động cấp admin nếu email khớp ADMIN_EMAIL và chưa được set
   const adminEmail = process.env.ADMIN_EMAIL;
   if (adminEmail && user.email === adminEmail && !user.isAdmin) {

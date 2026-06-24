@@ -48,6 +48,12 @@ export default function LoginPage() {
         if (data.error?.includes("captcha") || data.error?.includes("phép tính")) { fetchCaptcha(); setForm((f) => ({ ...f, captchaAnswer: "" })); }
         throw new Error(data.error);
       }
+      if (data.pending) {
+        setError("");
+        switchMode("login");
+        alert("Đăng ký thành công! Tài khoản của bạn đang chờ admin duyệt. Vui lòng chờ.");
+        return;
+      }
       router.push("/dashboard"); router.refresh();
     } catch (err) { setError((err as Error).message); } finally { setLoading(false); }
   }

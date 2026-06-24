@@ -85,7 +85,13 @@ export async function POST(req: NextRequest) {
 
   const hashed = await bcrypt.hash(password, 10);
   const isAdmin = process.env.ADMIN_EMAIL === email;
-  const user = await prisma.user.create({ data: { name, email, password: hashed, isAdmin } });
+  const user = await prisma.user.create({
+    data: { name, email, password: hashed, isAdmin, isApproved: isAdmin },
+  });
+
+  if (!isAdmin) {
+    return NextResponse.json({ ok: true, pending: true }, { status: 201 });
+  }
 
   await createSession({ userId: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin });
   return NextResponse.json({ ok: true }, { status: 201 });

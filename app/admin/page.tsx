@@ -18,6 +18,8 @@ type User = {
   name: string;
   email: string;
   isAdmin: boolean;
+  isApproved: boolean;
+  isBlocked: boolean;
   createdAt: string;
   accounts: Mt5Account[];
 };
@@ -61,6 +63,30 @@ export default function AdminPage() {
     }
   }
 
+  async function approveUser(id: string) {
+    await fetch(`/api/admin/users?id=${id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "approve" }),
+    });
+    fetchUsers();
+  }
+
+  async function blockUser(id: string) {
+    await fetch(`/api/admin/users?id=${id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "block" }),
+    });
+    fetchUsers();
+  }
+
+  async function unblockUser(id: string) {
+    await fetch(`/api/admin/users?id=${id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "unblock" }),
+    });
+    fetchUsers();
+  }
+
   async function deleteAccount(id: string, name: string) {
     if (!confirm(`Xóa tài khoản MT5 "${name}"? Terminal sẽ tự đóng trong vòng 30 giây.`)) return;
     const res = await fetch(`/api/admin/accounts?id=${id}`, { method: "DELETE" });
@@ -78,6 +104,8 @@ export default function AdminPage() {
 
   const totalAccounts = users.reduce((s, u) => s + u.accounts.length, 0);
   const totalActive = users.reduce((s, u) => s + u.accounts.filter((a) => a.isActive).length, 0);
+  const totalPending = users.filter((u) => !u.isApproved && !u.isBlocked && !u.isAdmin).length;
+  const totalBlocked = users.filter((u) => u.isBlocked).length;
 
   return (
     <div className="min-h-screen bg-[#060d1a] text-white">
@@ -110,9 +138,9 @@ export default function AdminPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
           {[
             { label: "Người dùng", value: users.length, color: "text-white" },
-            { label: "Tài khoản MT5", value: totalAccounts, color: "text-emerald-400" },
-            { label: "Đang hoạt động", value: totalActive, color: "text-blue-400" },
-            { label: "Đã tắt", value: totalAccounts - totalActive, color: "text-gray-500" },
+            { label: "Chờ duyệt", value: totalPending, color: "text-yellow-400" },
+            { label: "Đã kích hoạt", value: users.filter(u => u.isApproved).length, color: "text-emerald-400" },
+            { label: "Bị khóa", value: totalBlocked, color: "text-red-400" },
           ].map((s) => (
             <div key={s.label} className="bg-gray-900/60 border border-gray-800 rounded-2xl p-5">
               <div className={`text-2xl font-black ${s.color}`}>{s.value}</div>
@@ -153,10 +181,15 @@ export default function AdminPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-white">{user.name}</span>
                       {user.isAdmin && (
-                        <span className="rounded-full bg-yellow-500/15 border border-yellow-500/20 px-2 py-0.5 text-xs font-medium text-yellow-400">
-                          Admin
-                        </span>
+                        <span className="rounded-full bg-yellow-500/15 border border-yellow-500/20 px-2 py-0.5 text-xs font-medium text-yellow-400">Admin</span>
                       )}
+                      {user.isBlocked ? (
+                        <span className="rounded-full bg-red-500/15 border border-red-500/20 px-2 py-0.5 text-xs font-medium text-red-400">Bị khóa</span>
+                      ) : user.isApproved ? (
+                        <span className="rounded-full bg-emerald-500/15 border border-emerald-500/20 px-2 py-0.5 text-xs font-medium text-emerald-400">Đã duyệt</span>
+                      ) : !user.isAdmin ? (
+                        <span className="rounded-full bg-orange-500/15 border border-orange-500/20 px-2 py-0.5 text-xs font-medium text-orange-400">Chờ duyệt</span>
+                      ) : null}
                       <span className="rounded-full bg-gray-700/60 px-2 py-0.5 text-xs text-gray-400">
                         {user.accounts.length} MT5
                       </span>
@@ -169,12 +202,29 @@ export default function AdminPage() {
                   </span>
 
                   {!user.isAdmin && (
-                    <button
-                      onClick={() => deleteUser(user.id, user.name)}
-                      className="rounded-xl border border-red-800/50 px-3 py-1.5 text-xs text-red-400 hover:bg-red-900/20 transition shrink-0"
-                    >
-                      Xóa user
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {!user.isApproved && !user.isBlocked && (
+                        <button onClick={() => approveUser(user.id)}
+                          className="rounded-xl border border-emerald-700/50 px-3 py-1.5 text-xs text-emerald-400 hover:bg-emerald-900/20 transition">
+                          ✓ Duyệt
+                        </button>
+                      )}
+                      {user.isBlocked ? (
+                        <button onClick={() => unblockUser(user.id)}
+                          className="rounded-xl border border-gray-700/50 px-3 py-1.5 text-xs text-gray-400 hover:bg-gray-800 transition">
+                          Mở khóa
+                        </button>
+                      ) : (
+                        <button onClick={() => blockUser(user.id)}
+                          className="rounded-xl border border-orange-800/50 px-3 py-1.5 text-xs text-orange-400 hover:bg-orange-900/20 transition">
+                          Khóa
+                        </button>
+                      )}
+                      <button onClick={() => deleteUser(user.id, user.name)}
+                        className="rounded-xl border border-red-800/50 px-3 py-1.5 text-xs text-red-400 hover:bg-red-900/20 transition">
+                        Xóa
+                      </button>
+                    </div>
                   )}
                 </div>
 
