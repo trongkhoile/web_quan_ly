@@ -39,8 +39,18 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="bg-[#0a1628] pt-16 min-h-screen flex items-center">
-        <div className="mx-auto max-w-7xl px-6 py-24 flex flex-col md:flex-row items-center gap-16 w-full">
+      <section
+        className="pt-16 relative overflow-hidden"
+        style={{
+          background: "radial-gradient(ellipse at 70% 50%, #0d2a4a 0%, #0a1628 50%, #071020 100%)",
+          minHeight: "100vh",
+        }}
+      >
+        {/* subtle radial glow top-right */}
+        <div className="pointer-events-none absolute top-1/4 right-1/4 w-[500px] h-[500px] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(20,184,200,0.08) 0%, transparent 70%)" }} />
+
+        <div className="mx-auto max-w-7xl px-6 py-28 flex flex-col md:flex-row items-center gap-16 w-full relative z-10">
           {/* Left */}
           <div className="flex-1">
             <h1 className="text-4xl md:text-5xl font-black text-white leading-tight mb-6">
@@ -64,20 +74,45 @@ export default function LandingPage() {
           </div>
 
           {/* Right - Phone mockup */}
-          <div className="flex-1 flex justify-center">
-            <div className="relative">
-              {/* Glow */}
-              <div className="absolute inset-0 bg-[#14b8c8]/20 rounded-full blur-3xl scale-150 -z-10" />
-              {/* Phone */}
-              <div className="w-56 h-[440px] bg-gray-200 rounded-[3rem] border-[10px] border-gray-300 shadow-2xl flex items-center justify-center rotate-6">
-                <div className="w-full h-full bg-black rounded-[2.2rem] flex flex-col items-center justify-center gap-3 p-6">
-                  <img src="/logo.jpg" alt="UTRAL BOT PRO" className="w-24 h-24 rounded-2xl object-cover" />
+          <div className="flex-1 flex justify-center items-center">
+            <div className="relative" style={{ transform: "rotate(15deg)" }}>
+              {/* Outer glow */}
+              <div className="absolute inset-0 rounded-[3rem] blur-2xl scale-110"
+                style={{ background: "radial-gradient(circle, rgba(180,210,255,0.35) 0%, rgba(20,184,200,0.15) 50%, transparent 80%)" }} />
+              {/* Phone frame */}
+              <div
+                className="relative"
+                style={{
+                  width: "220px",
+                  height: "450px",
+                  borderRadius: "44px",
+                  background: "#111",
+                  border: "10px solid #222",
+                  boxShadow: "0 0 40px rgba(180,210,255,0.3), 0 0 80px rgba(20,184,200,0.15), inset 0 0 0 1px #333",
+                }}
+              >
+                {/* Notch */}
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 w-16 h-5 bg-black rounded-full z-10" />
+                {/* Screen */}
+                <div
+                  className="w-full h-full flex flex-col items-center justify-center gap-3"
+                  style={{ borderRadius: "34px", background: "#000", overflow: "hidden" }}
+                >
+                  <img src="/logo.jpg" alt="UTRAL BOT PRO" className="w-28 h-28 rounded-2xl object-cover" />
                   <div className="text-[#14b8c8] font-black text-base tracking-wide">UTRAL BOT</div>
                   <div className="text-orange-400 font-bold text-sm tracking-widest">PRO</div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Bottom wave */}
+        <div className="absolute bottom-0 left-0 right-0 z-10">
+          <svg viewBox="0 0 1440 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="block w-full">
+            <path d="M0,40 C320,100 680,0 1000,60 C1160,90 1320,30 1440,60 L1440,100 L0,100 Z" fill="#dce8f0" fillOpacity="0.5"/>
+            <path d="M0,60 C280,20 600,90 900,50 C1100,20 1280,80 1440,50 L1440,100 L0,100 Z" fill="#f5f5f5"/>
+          </svg>
         </div>
       </section>
 
