@@ -22,13 +22,12 @@ logger = logging.getLogger(__name__)
 
 
 def _resolve_symbol(raw: str) -> str:
-    """Tìm tên symbol thực tế trên broker (thử thêm hậu tố 'm' nếu không thấy)."""
-    if mt5.symbol_info(raw) is not None:
-        return raw
-    with_m = raw + "m"
-    if mt5.symbol_info(with_m) is not None:
-        return with_m
-    raise RuntimeError(f"Symbol {raw} không tồn tại (đã thử {with_m})")
+    """Tìm tên symbol thực tế trên broker, thử các hậu tố phổ biến."""
+    candidates = [raw, raw + "m", raw + ".v", raw + ".pro", raw + "_"]
+    for sym in candidates:
+        if mt5.symbol_info(sym) is not None:
+            return sym
+    raise RuntimeError(f"Symbol {raw} không tồn tại (đã thử: {', '.join(candidates)})")
 
 
 def _get_filling_mode(symbol_info) -> int:
