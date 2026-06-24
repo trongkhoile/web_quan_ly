@@ -118,9 +118,10 @@ export default function LandingPage() {
           </Link>
           <div className="hidden md:flex items-center gap-7"></div>
           <div className="flex items-center gap-3">
-            <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-[#00b894] transition px-3 py-2">Đăng nhập</Link>
-            <Link href="/login" className="text-sm font-bold text-white px-5 py-2.5 rounded-lg hover:opacity-90 transition" style={{ background: T }}>
-              Mở tài khoản →
+            <Link href="/login" className="hidden sm:block text-sm font-medium text-gray-600 hover:text-[#00b894] transition px-3 py-2">Đăng nhập</Link>
+            <Link href="/login" className="text-sm font-bold text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg hover:opacity-90 transition" style={{ background: T }}>
+              <span className="hidden sm:inline">Mở tài khoản →</span>
+              <span className="sm:hidden">Đăng ký →</span>
             </Link>
           </div>
         </div>
@@ -128,29 +129,29 @@ export default function LandingPage() {
 
       {/* ── HERO ── */}
       <section className="pt-16 min-h-screen flex items-center relative">
-        <div className="mx-auto max-w-6xl px-6 py-24 flex flex-col md:flex-row items-center gap-10 w-full">
+        <div className="mx-auto max-w-6xl px-6 py-10 md:py-24 flex flex-col md:flex-row items-center gap-8 md:gap-10 w-full">
           {/* Left */}
-          <div className="flex-1 max-w-lg">
-            <h1 className="text-5xl font-black leading-tight mb-5 text-[#0d2137]">
+          <div className="flex-1 max-w-lg text-center md:text-left">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight mb-4 md:mb-5 text-[#0d2137]">
               Xây dựng<br />
               <span className="transition-opacity duration-300 whitespace-nowrap" style={{ color: T, opacity: show ? 1 : 0 }}>
                 Giao dịch {heroWords[wordIdx]}
               </span>
               <span className="anim-blink" style={{ color: T }}>|</span>
             </h1>
-            <p className="text-gray-500 text-sm leading-relaxed mb-8 max-w-sm">
+            <p className="text-gray-500 text-sm leading-relaxed mb-6 md:mb-8 max-w-sm mx-auto md:mx-0">
               Dù bạn là người mới hay chuyên gia, nền tảng AI của UTRAL BOT PRO giúp bạn tự động hóa giao dịch với chiến lược đáng tin cậy trên vàng, ngoại hối, chỉ số — không cần lập trình.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex justify-center md:justify-start">
               <Link href="/login" className="inline-flex items-center justify-center gap-2 text-white font-bold px-6 py-3.5 rounded-lg text-sm hover:opacity-90 transition" style={{ background: T }}>
                 Bắt đầu dùng thử miễn phí →
               </Link>
             </div>
-            <p className="text-xs text-gray-400 mt-3">Không cần thẻ tín dụng.</p>
+            <p className="text-xs text-gray-400 mt-3 text-center md:text-left">Không cần thẻ tín dụng.</p>
           </div>
 
           {/* Right — floating network */}
-          <div className="flex-1 flex justify-center items-center relative h-[400px] w-full max-w-[420px]">
+          <div className="flex-1 flex justify-center items-center relative h-[260px] sm:h-[320px] md:h-[400px] w-full max-w-[420px]">
             {/* Dashed lines — dynamically updated by RAF loop */}
             <svg ref={netSvgRef} className="absolute inset-0 w-full h-full" viewBox="0 0 420 400" style={{ zIndex:1 }}>
               {[0,1,2,3,4,5].map(i => (
@@ -229,12 +230,12 @@ export default function LandingPage() {
 
       {/* ── CTA BANNER ── */}
       <section className="px-6 pb-10">
-        <div className="mx-auto max-w-5xl rounded-2xl p-10 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden"
+        <div className="mx-auto max-w-5xl rounded-2xl p-6 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden"
           style={{ background: T }}>
           <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full opacity-20" style={{ background: "rgba(255,255,255,0.4)" }} />
           <div className="absolute right-16 -bottom-8 w-32 h-32 rounded-full opacity-15" style={{ background: "rgba(255,255,255,0.4)" }} />
           <div className="relative z-10 max-w-lg">
-            <h2 className="text-white font-black text-2xl mb-2">Trải nghiệm giao dịch được hỗ trợ bởi AI ngay hôm nay.</h2>
+            <h2 className="text-white font-black text-lg md:text-2xl mb-2 text-center md:text-left">Trải nghiệm giao dịch được hỗ trợ bởi AI ngay hôm nay.</h2>
             <p className="text-white/80 text-sm leading-relaxed">Hãy để công nghệ của chúng tôi tự động hóa các giao dịch, thay thế cảm xúc bằng sự chính xác và nhất quán.</p>
           </div>
           <Link href="/login" className="relative z-10 shrink-0 bg-white font-bold text-sm px-6 py-3 rounded-lg hover:bg-gray-50 transition" style={{ color: T }}>
@@ -247,10 +248,10 @@ export default function LandingPage() {
       <section className="py-20 px-6">
         <div ref={featuresRef.ref} className="mx-auto max-w-5xl">
           <div className={`text-center mb-12 ${featuresRef.visible ? "anim-fade-up" : "opacity-0"}`}>
-            <h2 className="text-2xl font-black text-[#0d2137]">Điều gì làm nên sự độc đáo của UTRAL BOT PRO?</h2>
+            <h2 className="text-xl md:text-2xl font-black text-[#0d2137]">Điều gì làm nên sự độc đáo của UTRAL BOT PRO?</h2>
             <div className="mx-auto mt-3 w-12 h-1 rounded-full" style={{ background: T }} />
           </div>
-          <div className="grid md:grid-cols-3 gap-5">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5">
             {[
               { title:"Tín hiệu đã được chứng minh",  desc:"Truy cập 10+ chiến lược vào lệnh đáng tin cậy, được kiểm nghiệm bởi các nhà giao dịch trên toàn thế giới để cho bạn nền tảng vững chắc." },
               { title:"Công cụ xây dựng chiến lược tùy chỉnh", desc:"Thiết kế và khởi chạy bot giao dịch riêng với các chỉ báo và cài đặt tùy chỉnh, giúp bạn kiểm soát hoàn toàn phương pháp giao dịch." },
@@ -278,10 +279,10 @@ export default function LandingPage() {
       {/* ── STEPS ── */}
       <section className="py-20 px-6" style={{ background: "rgba(0,184,148,0.04)" }}>
         <div ref={stepsRef.ref} className="mx-auto max-w-5xl">
-          <h2 className={`text-2xl font-black text-center text-[#0d2137] mb-14 ${stepsRef.visible ? "anim-fade-up" : "opacity-0"}`}>
+          <h2 className={`text-xl md:text-2xl font-black text-center text-[#0d2137] mb-10 md:mb-14 ${stepsRef.visible ? "anim-fade-up" : "opacity-0"}`}>
             Bắt đầu chỉ với 3 bước đơn giản
           </h2>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-6 md:gap-8">
             {[
               { n:"1", title:"Xây dựng Bot Giao Dịch của Bạn",   desc:"Chọn thị trường ưa thích, áp dụng các chiến lược đáng tin cậy, tùy chỉnh cài đặt bot của bạn, và cuối cùng tải xuống phiên bản MT5 đã biên dịch.", delay:"0s" },
               { n:"2", title:"Kết nối tài khoản giao dịch của bạn", desc:"Nhập bot đã biên dịch vào nền tảng MetaTrader, liên kết nó với tài khoản giao dịch của bạn và chuẩn bị cho giao dịch thực hoặc giao dịch thử nghiệm.", delay:"0.15s" },
@@ -309,12 +310,12 @@ export default function LandingPage() {
       <section className="py-20 px-6">
         <div ref={testiRef.ref} className="mx-auto max-w-5xl">
           <div className={`flex flex-col md:flex-row justify-between items-start gap-6 mb-12 ${testiRef.visible ? "anim-fade-up" : "opacity-0"}`}>
-            <h2 className="text-3xl font-black text-[#0d2137] max-w-sm leading-tight">
+            <h2 className="text-xl md:text-3xl font-black text-[#0d2137] max-w-sm leading-tight">
               Hàng ngàn nhà giao dịch tin tưởng và sử dụng UTRAL BOT PRO để đạt được lợi nhuận.
               <Link href="/login" className="block text-sm font-normal mt-2 hover:underline" style={{ color: T }}>Xem tất cả →</Link>
             </h2>
           </div>
-          <div className="grid md:grid-cols-3 gap-5">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5">
             {[
               { name:"Nguyễn Văn Tuấn", stars:5, title:"Bot giao dịch tốt nhất tôi từng dùng.", body:"\"Đây là bot giao dịch ngoại hối tốt nhất mà tôi từng sử dụng. Tôi đã kết nối hơn 3 tài khoản MT5 và đang thử nghiệm...\"", delay:"0s" },
               { name:"Trần Minh Khoa",  stars:5, title:"UTRAL BOT PRO thực sự hiệu quả!",      body:"\"Trước hết, bot thực sự rất hiệu quả! Bên cạnh đó, nếu có cập nhật hoặc cần trợ giúp, đội ngũ sẽ dành thời gian giải thích cho bạn...\"", delay:"0.1s" },
@@ -351,17 +352,17 @@ export default function LandingPage() {
       {/* ── STATS ── */}
       <section className="py-20 px-6 bg-white">
         <div className="mx-auto max-w-5xl text-center">
-          <h2 className="text-2xl font-black text-[#0d2137] mb-3">Được tin dùng trên toàn thế giới từ năm 2021.</h2>
-          <p className="text-gray-500 text-sm mb-12">Hàng ngàn nhà giao dịch đã tự động hóa chiến lược của họ với UTRAL BOT PRO.</p>
-          <div className="grid grid-cols-3 gap-8">
+          <h2 className="text-xl md:text-2xl font-black text-[#0d2137] mb-3">Được tin dùng trên toàn thế giới từ năm 2021.</h2>
+          <p className="text-gray-500 text-sm mb-8 md:mb-12">Hàng ngàn nhà giao dịch đã tự động hóa chiến lược của họ với UTRAL BOT PRO.</p>
+          <div className="grid grid-cols-3 gap-4 md:gap-8">
             {[
-              { value:"+5.000", label:"Các thương nhân đã đăng ký" },
-              { value:"24/7",   label:"Hệ thống hoạt động liên tục" },
+              { value:"+5.000", label:"Thương nhân đã đăng ký" },
+              { value:"24/7",   label:"Hệ thống hoạt động" },
               { value:"<1s",    label:"Tốc độ đặt lệnh" },
             ].map((s) => (
               <div key={s.label}>
-                <div className="text-4xl font-black mb-2" style={{ color: T }}>{s.value}</div>
-                <div className="text-gray-500 text-sm">{s.label}</div>
+                <div className="text-2xl sm:text-3xl md:text-4xl font-black mb-1 md:mb-2" style={{ color: T }}>{s.value}</div>
+                <div className="text-gray-500 text-xs md:text-sm">{s.label}</div>
               </div>
             ))}
           </div>
@@ -371,7 +372,7 @@ export default function LandingPage() {
       {/* ── FAQ ── */}
       <section className="py-20 px-6" style={{ background: "rgba(0,184,148,0.03)" }}>
         <div ref={faqRef.ref} className="mx-auto max-w-3xl">
-          <h2 className={`text-2xl font-black text-[#0d2137] text-center mb-12 ${faqRef.visible ? "anim-fade-up" : "opacity-0"}`}>
+          <h2 className={`text-xl md:text-2xl font-black text-[#0d2137] text-center mb-8 md:mb-12 ${faqRef.visible ? "anim-fade-up" : "opacity-0"}`}>
             Câu hỏi thường gặp
           </h2>
           <div className={faqRef.visible ? "anim-fade-up" : "opacity-0"}>
@@ -389,7 +390,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="border-t border-gray-100 py-16 px-6 bg-white">
+      <footer className="border-t border-gray-100 py-10 md:py-16 px-6 bg-white">
         <div className="mx-auto max-w-5xl">
           <div className="flex flex-col md:flex-row gap-12 mb-12">
             {/* Brand */}
