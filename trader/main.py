@@ -78,6 +78,7 @@ mp_at_lock:      mp.Lock  = mp.Lock()           # Cross-process lock cho keyboar
 trade_results:  asyncio.Queue                   # Kết quả trade (asyncio Queue, dùng trong async)
 worker_queues:  dict[str, mp.Queue] = {}        # account_id → input queue của worker
 worker_terminal_paths: dict[str, str] = {}      # account_id → terminal_path
+worker_signal_modes: dict[str, str]  = {}       # account_id → signalMode
 worker_procs:   list[mp.Process]    = []
 provisioned_ids: set[str]           = set()     # Đã được provision (ngăn provision trùng)
 inactive_ids:    set[str]           = set()     # isActive=False (không nhận lệnh)
@@ -132,7 +133,8 @@ async def drain_result_queue():
 # ── Provision 1 tài khoản (blocking, chạy trong thread pool) ──────────────
 
 def _provision_blocking(acc_id: str, name: str, login: int, password: str,
-                        server: str, terminal_path: str | None) -> bool:
+                        server: str, terminal_path: str | None,
+                        signal_mode: str = "both") -> bool:
     if not os.path.exists(BASE_EXE):
         logger.error(f"Không tìm thấy MT5: {BASE_EXE}")
         return False
@@ -156,6 +158,7 @@ def _provision_blocking(acc_id: str, name: str, login: int, password: str,
     q: mp.Queue = mp.Queue()
     worker_queues[acc_id] = q
     worker_terminal_paths[acc_id] = terminal_path
+    worker_signal_modes[acc_id] = signal_mode
 
     proc = mp.Process(
         target=worker_process,
@@ -170,11 +173,12 @@ def _provision_blocking(acc_id: str, name: str, login: int, password: str,
 
 
 async def provision_account(acc_id: str, name: str, login: int, password: str,
-                            server: str, terminal_path: str | None):
+                            server: str, terminal_path: str | None,
+                            signal_mode: str = "both"):
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(
         None, _provision_blocking,
-        acc_id, name, login, password, server, terminal_path,
+        acc_id, name, login, password, server, terminal_path, signal_mode,
     )
 
 
@@ -192,8 +196,8 @@ async def load_existing_accounts():
 
     logger.info(f"Provision {len(accounts)} tài khoản hiện có...")
     tasks = [
-        provision_account(acc_id, name, int(login), password, server, terminal_path)
-        for acc_id, name, login, password, server, terminal_path in accounts
+        provision_account(acc_id, name, int(login), password, server, terminal_path, signal_mode)
+        for acc_id, name, login, password, server, terminal_path, signal_mode in accounts
     ]
     await asyncio.gather(*tasks)
 
@@ -210,7 +214,7 @@ async def watch_new_accounts():
                     provisioned_ids.add(acc_id)  # Đánh dấu ngay, tránh provision trùng
                     logger.info(f"[{acc[1]}] Phát hiện tài khoản mới → provision")
                     asyncio.create_task(
-                        provision_account(acc_id, acc[1], int(acc[2]), acc[3], acc[4], acc[5])
+                        provision_account(acc_id, acc[1], int(acc[2]), acc[3], acc[4], acc[5], acc[6])
                     )
         except Exception as e:
             logger.error(f"watch_new_accounts lỗi: {e}")
@@ -222,13 +226,18 @@ async def watch_accounts_changes():
     while True:
         await asyncio.sleep(30)
         try:
-            all_accounts = get_all_account_ids()  # {id: isActive}
+            all_accounts = get_all_account_ids()  # {id: {isActive, signalMode}}
             all_ids      = set(all_accounts.keys())
-            active_ids   = {aid for aid, is_active in all_accounts.items() if is_active}
+            active_ids   = {aid for aid, info in all_accounts.items() if info["isActive"]}
 
             # Cập nhật inactive_ids: account vẫn tồn tại nhưng isActive=False → bỏ qua tín hiệu, GIỮ worker
             inactive_ids.clear()
             inactive_ids.update(aid for aid in worker_queues if aid in all_ids and aid not in active_ids)
+
+            # Sync signal_mode từ DB (cập nhật khi user thay đổi trên web)
+            for aid, mode in all_accounts.items():
+                if aid in worker_queues and isinstance(mode, dict):
+                    worker_signal_modes[aid] = mode.get("signalMode", "both")
 
             # Account bị XÓA khỏi DB → dừng worker VÀ kill terminal
             deleted_ids = [aid for aid in list(worker_queues.keys()) if aid not in all_ids]
@@ -263,8 +272,9 @@ async def dispatch_signal(signal_text: str, signal: TradeSignal):
     logger.info(f"▶ {signal.action} {signal.symbol} → {n} tài khoản")
     t_start = time.time()
 
-    for _, q in queues:
-        q.put(signal)
+    for aid, q in queues:
+        mode = worker_signal_modes.get(aid, "both")
+        q.put((signal, mode))
 
     results = []
     deadline = time.time() + 30

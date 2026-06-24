@@ -12,9 +12,8 @@ export async function GET(req: NextRequest) {
   const type = req.nextUrl.searchParams.get("type");
 
   if (type === "all") {
-    // Tất cả account IDs (kể cả đang tắt), dùng để phát hiện account bị xóa
     const accounts = await prisma.mt5Account.findMany({
-      select: { id: true, isActive: true },
+      select: { id: true, isActive: true, signalMode: true },
     });
     return NextResponse.json(accounts);
   }
@@ -22,7 +21,7 @@ export async function GET(req: NextRequest) {
   const status = type === "pending" ? "pending" : "connected";
   const accounts = await prisma.mt5Account.findMany({
     where: { isActive: true, status },
-    select: { id: true, name: true, mt5Login: true, mt5Password: true, mt5Server: true, terminalPath: true },
+    select: { id: true, name: true, mt5Login: true, mt5Password: true, mt5Server: true, terminalPath: true, signalMode: true },
   });
   return NextResponse.json(accounts);
 }

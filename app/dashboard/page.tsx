@@ -9,7 +9,8 @@ const NAVY = "#0d2137";
 
 type Account = {
   id: string; name: string; mt5Login: string; mt5Server: string;
-  isActive: boolean; status: "pending" | "connected" | "failed"; createdAt: string;
+  isActive: boolean; signalMode: "simple" | "dca" | "both";
+  status: "pending" | "connected" | "failed"; createdAt: string;
 };
 type User = { name: string; email: string; isAdmin: boolean };
 type Trade = {
@@ -28,6 +29,7 @@ export default function DashboardPage() {
   const [form, setForm] = useState({ name: "", mt5Login: "", mt5Password: "", mt5Server: "" });
   const [loading, setLoading] = useState(false);
   const [toggling, setToggling] = useState<string | null>(null);
+  const [changingMode, setChangingMode] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -88,6 +90,14 @@ export default function DashboardPage() {
       const res = await fetch(`/api/accounts?id=${acc.id}`, { method: "PATCH" });
       if (res.ok) fetchAccounts();
     } finally { setToggling(null); }
+  }
+
+  async function handleSignalMode(acc: Account, mode: string) {
+    setChangingMode(acc.id);
+    try {
+      const res = await fetch(`/api/accounts?id=${acc.id}&signalMode=${mode}`, { method: "PATCH" });
+      if (res.ok) fetchAccounts();
+    } finally { setChangingMode(null); }
   }
 
   async function handleDelete(id: string, name: string) {
@@ -261,6 +271,21 @@ export default function DashboardPage() {
                             )}
                           </div>
                           <p className="text-xs text-gray-400 mt-0.5 font-mono truncate">{acc.mt5Login} · {acc.mt5Server}</p>
+                          {acc.status === "connected" && (
+                            <div className="flex gap-1 mt-1.5">
+                              {(["simple", "dca", "both"] as const).map((m) => (
+                                <button key={m} onClick={() => handleSignalMode(acc, m)}
+                                  disabled={changingMode === acc.id}
+                                  className={`px-2 py-0.5 rounded-full text-xs font-semibold border transition ${acc.signalMode === m
+                                    ? "text-white border-transparent"
+                                    : "text-gray-400 border-gray-200 hover:border-[#00b894] hover:text-[#00b894]"
+                                  }`}
+                                  style={acc.signalMode === m ? { background: T, borderColor: T } : {}}>
+                                  {m === "simple" ? "Lệnh đơn" : m === "dca" ? "DCA" : "Cả hai"}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
 

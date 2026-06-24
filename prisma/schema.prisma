@@ -26,6 +26,7 @@ model Mt5Account {
   mt5Server    String
   terminalPath String?
   isActive     Boolean        @default(true)
+  signalMode   String         @default("both")
   status       String         @default("connected")
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt

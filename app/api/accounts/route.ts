@@ -17,7 +17,7 @@ export async function GET() {
   const accounts = await prisma.mt5Account.findMany({
     where: { userId: session.userId },
     orderBy: { createdAt: "desc" },
-    select: { id: true, name: true, mt5Login: true, mt5Server: true, isActive: true, status: true, createdAt: true },
+    select: { id: true, name: true, mt5Login: true, mt5Server: true, isActive: true, signalMode: true, status: true, createdAt: true },
   });
   return NextResponse.json(accounts);
 }
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PATCH /api/accounts?id=xxx  — toggle isActive
+// PATCH /api/accounts?id=xxx  — toggle isActive OR update signalMode
 export async function PATCH(req: NextRequest) {
   let session;
   try { session = await requireSession(); }
@@ -63,6 +63,14 @@ export async function PATCH(req: NextRequest) {
   const account = await prisma.mt5Account.findUnique({ where: { id } });
   if (!account || account.userId !== session.userId)
     return NextResponse.json({ error: "Không có quyền" }, { status: 403 });
+
+  const signalMode = req.nextUrl.searchParams.get("signalMode");
+  if (signalMode) {
+    if (!["simple", "dca", "both"].includes(signalMode))
+      return NextResponse.json({ error: "signalMode không hợp lệ" }, { status: 400 });
+    await prisma.mt5Account.update({ where: { id }, data: { signalMode } });
+    return NextResponse.json({ ok: true, signalMode });
+  }
 
   const updated = await prisma.mt5Account.update({
     where: { id }, data: { isActive: !account.isActive },

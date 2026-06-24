@@ -417,7 +417,12 @@ def worker_process(
                     logging.info("Nhận lệnh tắt")
                     break
 
-                signal: TradeSignal = item
+                signal: TradeSignal
+                signal_mode: str
+                if isinstance(item, tuple):
+                    signal, signal_mode = item
+                else:
+                    signal, signal_mode = item, "both"
 
                 if mt5.account_info() is None:
                     logging.warning("Mất kết nối MT5, đang kết nối lại...")
@@ -429,13 +434,17 @@ def worker_process(
                 elif signal.action == "CLOSE":
                     msg = _close_positions(signal.symbol)
                 else:
-                    msg = _open_order(signal)
-                    if signal.dca is not None:
+                    msgs = []
+                    # Lệnh đơn (market order)
+                    if signal_mode in ("simple", "both"):
+                        msgs.append(_open_order(signal))
+                    # Lệnh DCA (pending limit)
+                    if signal.dca is not None and signal_mode in ("dca", "both"):
                         try:
-                            dca_msg = _open_dca_order(signal, signal.dca)
-                            msg += f" | {dca_msg}"
+                            msgs.append(_open_dca_order(signal, signal.dca))
                         except Exception as e:
-                            msg += f" | DCA thất bại: {e}"
+                            msgs.append(f"DCA thất bại: {e}")
+                    msg = " | ".join(msgs) if msgs else "Bỏ qua (không khớp signal mode)"
 
                 result_queue.put({
                     "account_id": account_id,
