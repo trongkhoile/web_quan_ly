@@ -105,14 +105,20 @@ export default function LandingPage() {
 
           {/* Right — floating network */}
           <div className="flex-1 flex justify-center items-center relative h-[400px] w-full max-w-[420px]">
-            {/* Dashed lines — center at (210,200) matching globe center */}
+            {/* Dashed lines — from globe edge (r=54) to satellite edge (r=28) */}
             <svg className="absolute inset-0 w-full h-full" viewBox="0 0 420 400" style={{ zIndex:1 }}>
-              <line x1="210" y1="200" x2="210" y2="36"  stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
-              <line x1="210" y1="200" x2="358" y2="76"  stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
-              <line x1="210" y1="200" x2="384" y2="188" stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
-              <line x1="210" y1="200" x2="316" y2="340" stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
-              <line x1="210" y1="200" x2="104" y2="340" stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
-              <line x1="210" y1="200" x2="62"  y2="76"  stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
+              {/* Sat1 top     center(210,36)  → from(210,146) to(210,64)   */}
+              <line x1="210" y1="146" x2="210" y2="64"  stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
+              {/* Sat2 top-right center(358,76) → from(251,165) to(337,94)  */}
+              <line x1="251" y1="165" x2="337" y2="94"  stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
+              {/* Sat3 right   center(384,188) → from(264,196) to(356,190)  */}
+              <line x1="264" y1="196" x2="356" y2="190" stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
+              {/* Sat4 bot-right center(316,340)→ from(243,243) to(299,318) */}
+              <line x1="243" y1="243" x2="299" y2="318" stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
+              {/* Sat5 bot-left  center(104,340)→ from(177,243) to(121,318) */}
+              <line x1="177" y1="243" x2="121" y2="318" stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
+              {/* Sat6 top-left  center(62,76) → from(169,165) to(84,94)   */}
+              <line x1="169" y1="165" x2="84"  y2="94"  stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
             </svg>
 
             {/* Center — outer div centers, inner div floats (can't mix transforms) */}
