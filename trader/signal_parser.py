@@ -5,7 +5,7 @@ from typing import Literal, Optional
 
 @dataclass
 class TradeSignal:
-    action: Literal["BUY", "SELL", "CLOSE"]
+    action: Literal["BUY", "SELL", "CLOSE", "CLOSE_ALL"]
     symbol: str
     entry: Optional[float] = None
     sl: Optional[float] = None
@@ -50,6 +50,10 @@ def parse_signal(text: str) -> Optional[TradeSignal]:
         return None
 
     first = lines[0].upper()
+
+    # WIN / LOSS → đóng tất cả lệnh
+    if re.search(r"\b(WIN|LOSS)\b", first):
+        return TradeSignal(action="CLOSE_ALL", symbol="*")
 
     # CLOSE XAUUSD
     m = re.search(r"\bCLOSE\s+([A-Z][A-Z0-9]{1,9})\b", first)

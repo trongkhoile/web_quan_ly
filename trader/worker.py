@@ -277,6 +277,25 @@ def _monitor_positions(
         stop_event.wait(3)  # Kiểm tra mỗi 3 giây
 
 
+def _close_all_positions() -> str:
+    """Đóng tất cả lệnh mở + hủy tất cả pending orders của bot (magic=123456)."""
+    positions = mt5.positions_get() or []
+    bot_positions = [p for p in positions if p.magic == 123456]
+
+    closed = 0
+    for pos in bot_positions:
+        if _close_single_position(pos):
+            closed += 1
+
+    pending = mt5.orders_get() or []
+    cancelled = 0
+    for order in [o for o in pending if o.magic == 123456]:
+        if _cancel_pending(order.ticket):
+            cancelled += 1
+
+    return f"Đóng {closed}/{len(bot_positions)} lệnh, hủy {cancelled} pending"
+
+
 def _reconnect(terminal_path: str, login: int, password: str, server: str) -> bool:
     mt5.shutdown()
     time.sleep(2)
@@ -400,7 +419,9 @@ def worker_process(
                     if not _reconnect(terminal_path, login, password, server):
                         raise RuntimeError(f"Kết nối lại thất bại: {mt5.last_error()}")
 
-                if signal.action == "CLOSE":
+                if signal.action == "CLOSE_ALL":
+                    msg = _close_all_positions()
+                elif signal.action == "CLOSE":
                     msg = _close_positions(signal.symbol)
                 else:
                     msg = _open_order(signal)
