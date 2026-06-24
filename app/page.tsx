@@ -70,7 +70,7 @@ export default function LandingPage() {
               <div className="absolute inset-0 bg-[#14b8c8]/20 rounded-full blur-3xl scale-150 -z-10" />
               {/* Phone */}
               <div className="w-56 h-[440px] bg-gray-200 rounded-[3rem] border-[10px] border-gray-300 shadow-2xl flex items-center justify-center rotate-6">
-                <div className="w-full h-full bg-[#0a1628] rounded-[2.2rem] flex flex-col items-center justify-center gap-3 p-6">
+                <div className="w-full h-full bg-black rounded-[2.2rem] flex flex-col items-center justify-center gap-3 p-6">
                   <img src="/logo.jpg" alt="UTRAL BOT PRO" className="w-24 h-24 rounded-2xl object-cover" />
                   <div className="text-[#14b8c8] font-black text-base tracking-wide">UTRAL BOT</div>
                   <div className="text-orange-400 font-bold text-sm tracking-widest">PRO</div>
