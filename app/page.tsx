@@ -41,7 +41,10 @@ export default function LandingPage() {
   const [show, setShow] = useState(true);
 
   useEffect(() => {
-    fetch("/api/auth/me").then(r => { if (r.ok) router.replace("/dashboard"); });
+    fetch("/api/auth/me").then(r => r.ok ? r.json() : null).then(data => {
+      if (!data) return;
+      router.replace(data.isAdmin ? "/admin" : "/dashboard");
+    });
   }, [router]);
   const featuresRef = useVisible();
   const stepsRef    = useVisible();

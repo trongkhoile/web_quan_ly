@@ -11,7 +11,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Thiếu email hoặc mật khẩu" }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  // Cho phép đăng nhập bằng tên (Admin123) hoặc email
+  const user = await prisma.user.findFirst({
+    where: { OR: [{ email }, { name: email }] },
+  });
   if (!user || !(await bcrypt.compare(password, user.password))) {
     return NextResponse.json({ error: "Email hoặc mật khẩu không đúng" }, { status: 401 });
   }
@@ -32,5 +35,5 @@ export async function POST(req: NextRequest) {
   }
 
   await createSession({ userId: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin });
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, isAdmin: user.isAdmin });
 }

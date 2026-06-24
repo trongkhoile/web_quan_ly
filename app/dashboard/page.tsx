@@ -136,24 +136,10 @@ export default function DashboardPage() {
           <Link href="/" className="font-black text-xl tracking-wide" style={{ color: NAVY }}>UTRAL BOT PRO</Link>
           <div className="flex items-center gap-3">
             {user && (
-              <>
-                <div className="hidden sm:flex items-center gap-2 text-sm">
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white uppercase" style={{ background: T }}>
-                    {user.name[0]}
-                  </div>
-                  <span className="text-gray-600 font-medium">{user.name}</span>
-                </div>
-                {user.isAdmin && (
-                  <button onClick={() => router.push("/admin")}
-                    className="rounded-lg bg-orange-50 border border-orange-200 px-3 py-1.5 text-xs font-semibold text-orange-600 hover:bg-orange-100 transition">
-                    Quản trị
-                  </button>
-                )}
-                <button onClick={handleLogout}
-                  className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-500 hover:border-[#00b894] hover:text-[#00b894] transition">
-                  Đăng xuất
-                </button>
-              </>
+              <button onClick={handleLogout}
+                className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-500 hover:border-[#00b894] hover:text-[#00b894] transition">
+                Đăng xuất
+              </button>
             )}
           </div>
         </div>

@@ -59,6 +59,7 @@ export default function LoginPage() {
         alert("Đăng ký thành công! Tài khoản của bạn đang chờ admin duyệt. Vui lòng chờ.");
         return;
       }
+      if (data.isAdmin) { router.push("/admin"); router.refresh(); return; }
       router.push("/dashboard"); router.refresh();
     } catch (err) { setError((err as Error).message); } finally { setLoading(false); }
   }
