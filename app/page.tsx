@@ -104,40 +104,50 @@ export default function LandingPage() {
           </div>
 
           {/* Right — floating network */}
-          <div className="flex-1 flex justify-center items-center relative h-[380px] w-full max-w-md">
-            <svg className="absolute inset-0 w-full h-full opacity-25" viewBox="0 0 400 380">
-              <line x1="200" y1="190" x2="310" y2="80"  stroke={T} strokeWidth="1.5" strokeDasharray="5,5"/>
-              <line x1="200" y1="190" x2="340" y2="190" stroke={T} strokeWidth="1.5" strokeDasharray="5,5"/>
-              <line x1="200" y1="190" x2="310" y2="300" stroke={T} strokeWidth="1.5" strokeDasharray="5,5"/>
-              <line x1="200" y1="190" x2="90"  y2="280" stroke={T} strokeWidth="1.5" strokeDasharray="5,5"/>
-              <line x1="200" y1="190" x2="80"  y2="100" stroke={T} strokeWidth="1.5" strokeDasharray="5,5"/>
-              <line x1="200" y1="190" x2="200" y2="50"  stroke={T} strokeWidth="1.5" strokeDasharray="5,5"/>
+          <div className="flex-1 flex justify-center items-center relative h-[400px] w-full max-w-[420px]">
+            {/* Dashed lines SVG — absolute, behind everything */}
+            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 420 400" style={{ zIndex:1 }}>
+              {/* center=210,200 → each satellite */}
+              <line x1="210" y1="200" x2="210" y2="55"  stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
+              <line x1="210" y1="200" x2="340" y2="100" stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
+              <line x1="210" y1="200" x2="355" y2="210" stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
+              <line x1="210" y1="200" x2="310" y2="330" stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
+              <line x1="210" y1="200" x2="100" y2="330" stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
+              <line x1="210" y1="200" x2="65"  y2="105" stroke={T} strokeWidth="1.2" strokeDasharray="5,5" opacity="0.4"/>
             </svg>
-            {/* Center */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-full flex items-center justify-center shadow-xl z-10 anim-float1"
-              style={{ background: T }}>
-              <div className="text-white text-center">
-                <img src="/logo.jpg" alt="" className="w-14 h-14 rounded-full object-cover mx-auto mb-1" />
-                <span className="text-[9px] font-black tracking-wide">UTRAL BOT</span>
-              </div>
+
+            {/* Center circle */}
+            <div className="absolute rounded-full flex flex-col items-center justify-center shadow-2xl anim-float1"
+              style={{ width:110, height:110, background:T, top:"50%", left:"50%", transform:"translate(-50%,-50%)", zIndex:10 }}>
+              <img src="/logo.jpg" alt="" className="w-14 h-14 rounded-full object-cover" />
+              <span className="text-white text-[10px] font-black tracking-wider mt-1">UTRAL BOT</span>
             </div>
+
+            {/* Satellites: top, top-right, right, bottom-right, bottom-left, top-left */}
             {[
-              { top:"5%",  left:"45%", size:60, icon:"📈", delay:"0s",  cls:"anim-float2" },
-              { top:"10%", left:"70%", size:52, icon:"🤖", delay:"0.5s", cls:"anim-float3" },
-              { top:"10%", left:"15%", size:56, icon:"💹", delay:"1s",  cls:"anim-float1" },
-              { top:"68%", left:"68%", size:64, icon:"⚡", delay:"0.3s", cls:"anim-float2" },
-              { top:"65%", left:"12%", size:52, icon:"🔔", delay:"0.8s", cls:"anim-float3" },
-              { top:"40%", left:"78%", size:48, icon:"📊", delay:"1.2s", cls:"anim-float1" },
+              { style:{ top:"2%",  left:"50%", transform:"translateX(-50%)" }, cls:"anim-float2", delay:"0s",
+                icon:<svg viewBox="0 0 24 24" fill="none" stroke={T} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> },
+              { style:{ top:"12%", right:"8%" }, cls:"anim-float3", delay:"0.4s",
+                icon:<svg viewBox="0 0 24 24" fill="none" stroke={T} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="3 9 9 9 9 14 15 14 15 9 21 9"/><line x1="9" y1="14" x2="9" y2="21"/><line x1="15" y1="14" x2="15" y2="21"/></svg> },
+              { style:{ top:"47%", right:"2%", transform:"translateY(-50%)" }, cls:"anim-float1", delay:"0.8s",
+                icon:<svg viewBox="0 0 24 24" fill="none" stroke={T} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
+              { style:{ bottom:"8%", right:"18%" }, cls:"anim-float2", delay:"0.2s",
+                icon:<svg viewBox="0 0 24 24" fill="none" stroke={T} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> },
+              { style:{ bottom:"8%", left:"18%" }, cls:"anim-float3", delay:"0.6s",
+                icon:<svg viewBox="0 0 24 24" fill="none" stroke={T} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> },
+              { style:{ top:"12%", left:"8%" }, cls:"anim-float1", delay:"1s",
+                icon:<svg viewBox="0 0 24 24" fill="none" stroke={T} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><polyline points="20 6 9 17 4 12"/></svg> },
             ].map((b, i) => (
               <div key={i} className={`absolute rounded-full flex items-center justify-center shadow-md ${b.cls}`}
                 style={{
-                  top: b.top, left: b.left,
-                  width: b.size, height: b.size,
-                  background: "rgba(0,184,148,0.1)",
-                  border: `2px solid rgba(0,184,148,0.3)`,
+                  ...b.style,
+                  width: 56, height: 56,
+                  background: "rgba(0,184,148,0.08)",
+                  border: "1.5px solid rgba(0,184,148,0.35)",
                   animationDelay: b.delay,
+                  zIndex: 5,
                 }}>
-                <span style={{ fontSize: b.size * 0.38 }}>{b.icon}</span>
+                {b.icon}
               </div>
             ))}
           </div>
