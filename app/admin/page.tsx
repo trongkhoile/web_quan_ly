@@ -124,10 +124,10 @@ export default function AdminPage() {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); router.push("/login"); }}
               className="rounded-lg border border-gray-700 px-3 py-1.5 text-xs text-gray-400 hover:border-gray-500 hover:text-white transition"
             >
-              ← Dashboard
+              Đăng xuất
             </button>
           </div>
         </div>
