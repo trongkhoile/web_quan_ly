@@ -115,9 +115,17 @@ export default function LoginPage() {
             )}
 
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase tracking-wide">Email / Tên đăng nhập</label>
-              <input type="text" placeholder="@gmail.com" value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })} required className={inputCls} />
+              <label className="mb-1.5 block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                {mode === "register" ? "Email" : "Email / Tên đăng nhập"}
+              </label>
+              <input
+                type={mode === "register" ? "email" : "text"}
+                placeholder="@gmail.com"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                required
+                className={inputCls}
+              />
             </div>
 
             <div>
