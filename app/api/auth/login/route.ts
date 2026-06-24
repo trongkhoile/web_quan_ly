@@ -27,13 +27,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Tài khoản của bạn đang chờ admin duyệt." }, { status: 403 });
   }
 
-  // Tự động cấp admin nếu email khớp ADMIN_EMAIL và chưa được set
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (adminEmail && user.email === adminEmail && !user.isAdmin) {
-    await prisma.user.update({ where: { id: user.id }, data: { isAdmin: true } });
-    user.isAdmin = true;
-  }
-
   await createSession({ userId: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin });
   return NextResponse.json({ ok: true, isAdmin: user.isAdmin });
 }
