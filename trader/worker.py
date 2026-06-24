@@ -9,6 +9,7 @@ import multiprocessing as mp
 import os
 import queue
 import random
+import threading
 import time
 import logging
 import MetaTrader5 as mt5
@@ -133,47 +134,65 @@ def _close_positions(symbol: str) -> str:
     return f"Đóng {closed}/{len(positions)} vị thế"
 
 
-def _fetch_new_deals(since_ts: float) -> list[dict]:
-    """Lấy các lệnh đã đóng kể từ since_ts (unix timestamp)."""
-    from_dt = datetime.datetime.fromtimestamp(since_ts)
-    to_dt   = datetime.datetime.now()
-    deals = mt5.history_deals_get(from_dt, to_dt)
-    if not deals:
-        return []
+def _monitor_positions(
+    account_id: str,
+    name: str,
+    result_queue: mp.Queue,
+    stop_event: threading.Event,
+):
+    """
+    Thread riêng: theo dõi positions mở mỗi 3 giây.
+    Khi position biến mất (đóng bởi TP/SL/tay) → lấy deal từ history và push ngay.
+    """
+    open_positions: dict[int, dict] = {}  # ticket → thông tin lúc mở
 
-    results = []
-    for d in deals:
-        if d.entry != mt5.DEAL_ENTRY_OUT:
-            continue
-        # Lấy tất cả deals của position để tìm deal mở
-        pos_deals = mt5.history_deals_get(position=d.position_id)
-        in_deal = None
-        if pos_deals:
-            ins = [pd for pd in pos_deals if pd.entry == mt5.DEAL_ENTRY_IN]
-            if ins:
-                in_deal = ins[0]
+    while not stop_event.is_set():
+        try:
+            current = mt5.positions_get() or []
+            current_tickets = {pos.ticket for pos in current}
 
-        if in_deal:
-            trade_type = "buy" if in_deal.type == mt5.DEAL_TYPE_BUY else "sell"
-            open_price = in_deal.price
-            open_time  = datetime.datetime.fromtimestamp(in_deal.time).isoformat()
-        else:
-            trade_type = "buy" if d.type == mt5.DEAL_TYPE_SELL else "sell"
-            open_price = 0.0
-            open_time  = datetime.datetime.fromtimestamp(d.time).isoformat()
+            # Ghi nhận positions mới xuất hiện
+            for pos in current:
+                if pos.ticket not in open_positions:
+                    open_positions[pos.ticket] = {
+                        "symbol":    pos.symbol,
+                        "tradeType": "buy" if pos.type == mt5.ORDER_TYPE_BUY else "sell",
+                        "lot":       pos.volume,
+                        "openPrice": pos.price_open,
+                        "openTime":  datetime.datetime.fromtimestamp(pos.time).isoformat(),
+                    }
 
-        results.append({
-            "dealTicket": str(d.ticket),
-            "symbol":     d.symbol,
-            "tradeType":  trade_type,
-            "lot":        d.volume,
-            "openPrice":  open_price,
-            "closePrice": d.price,
-            "profit":     round(d.profit + d.commission + d.swap, 2),
-            "openTime":   open_time,
-            "closeTime":  datetime.datetime.fromtimestamp(d.time).isoformat(),
-        })
-    return results
+            # Phát hiện positions vừa đóng
+            closed = set(open_positions.keys()) - current_tickets
+            for ticket in closed:
+                info = open_positions.pop(ticket)
+                try:
+                    deals = mt5.history_deals_get(position=ticket)
+                    out = next((d for d in (deals or []) if d.entry == mt5.DEAL_ENTRY_OUT), None)
+                    if out:
+                        result_queue.put({
+                            "account_id":    account_id,
+                            "name":          name,
+                            "trade_history": [{
+                                "dealTicket": str(out.ticket),
+                                "symbol":     info["symbol"],
+                                "tradeType":  info["tradeType"],
+                                "lot":        info["lot"],
+                                "openPrice":  info["openPrice"],
+                                "closePrice": out.price,
+                                "profit":     round(out.profit + out.commission + out.swap, 2),
+                                "openTime":   info["openTime"],
+                                "closeTime":  datetime.datetime.fromtimestamp(out.time).isoformat(),
+                            }],
+                        })
+                        logging.info(f"[{name}] Lệnh đóng: {info['symbol']} profit={out.profit:.2f}")
+                except Exception as e:
+                    logging.warning(f"[{name}] Lỗi lấy deal ticket={ticket}: {e}")
+
+        except Exception as e:
+            logging.warning(f"[{name}] monitor_positions lỗi: {e}")
+
+        stop_event.wait(3)  # Kiểm tra mỗi 3 giây
 
 
 def _reconnect(terminal_path: str, login: int, password: str, server: str) -> bool:
@@ -272,57 +291,54 @@ def worker_process(
     # Báo startup thành công
     result_queue.put({"account_id": account_id, "name": name, "success": True, "startup": True})
 
-    last_history_ts = time.time()
+    # Khởi động thread theo dõi positions
+    stop_event = threading.Event()
+    monitor_thread = threading.Thread(
+        target=_monitor_positions,
+        args=(account_id, name, result_queue, stop_event),
+        daemon=True,
+        name=f"monitor-{name}",
+    )
+    monitor_thread.start()
 
     # ── Vòng lặp chờ tín hiệu ────────────────────────────────────────────
-    while True:
-        try:
-            item = signal_queue.get(timeout=60)
-
-            if item == SHUTDOWN_SIGNAL:
-                logging.info("Nhận lệnh tắt")
-                break
-
-            signal: TradeSignal = item
-
-            # Kiểm tra kết nối còn sống không, nếu không thì kết nối lại
-            if mt5.account_info() is None:
-                logging.warning("Mất kết nối MT5, đang kết nối lại...")
-                if not _reconnect(terminal_path, login, password, server):
-                    raise RuntimeError(f"Kết nối lại thất bại: {mt5.last_error()}")
-
-            if signal.action == "CLOSE":
-                msg = _close_positions(signal.symbol)
-            else:
-                msg = _open_order(signal)
-
-            result_queue.put({
-                "account_id": account_id,
-                "name": name,
-                "success": True,
-                "message": msg,
-            })
-
-        except queue.Empty:
-            # Mỗi 60s: poll lịch sử MT5 để bắt TP/SL tự đóng
+    try:
+        while True:
             try:
-                deals = _fetch_new_deals(last_history_ts)
-                if deals:
-                    result_queue.put({
-                        "account_id": account_id,
-                        "name": name,
-                        "trade_history": deals,
-                    })
-                last_history_ts = time.time()
-            except Exception as e:
-                logging.warning(f"Lỗi poll lịch sử: {e}")
+                item = signal_queue.get()
 
-        except Exception as e:
-            result_queue.put({
-                "account_id": account_id,
-                "name": name,
-                "success": False,
-                "message": str(e),
-            })
+                if item == SHUTDOWN_SIGNAL:
+                    logging.info("Nhận lệnh tắt")
+                    break
+
+                signal: TradeSignal = item
+
+                if mt5.account_info() is None:
+                    logging.warning("Mất kết nối MT5, đang kết nối lại...")
+                    if not _reconnect(terminal_path, login, password, server):
+                        raise RuntimeError(f"Kết nối lại thất bại: {mt5.last_error()}")
+
+                if signal.action == "CLOSE":
+                    msg = _close_positions(signal.symbol)
+                else:
+                    msg = _open_order(signal)
+
+                result_queue.put({
+                    "account_id": account_id,
+                    "name": name,
+                    "success": True,
+                    "message": msg,
+                })
+
+            except Exception as e:
+                result_queue.put({
+                    "account_id": account_id,
+                    "name": name,
+                    "success": False,
+                    "message": str(e),
+                })
+    finally:
+        stop_event.set()
+        monitor_thread.join(timeout=5)
 
     mt5.shutdown()
