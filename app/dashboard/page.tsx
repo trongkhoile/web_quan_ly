@@ -212,8 +212,8 @@ export default function DashboardPage() {
                         <span className="text-xs font-bold" style={{ color: T }}>MT5</span>
                       </div>
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm" style={{ color: NAVY }}>{acc.name}</span>
+                        <span className="font-semibold text-sm" style={{ color: NAVY }}>{acc.name}</span>
+                        <div className="mt-1">
                           {acc.status === "pending" ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 border border-orange-200 px-2 py-0.5 text-xs font-medium text-orange-600">
                               <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />Đang kết nối...
