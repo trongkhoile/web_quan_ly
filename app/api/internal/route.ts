@@ -41,21 +41,30 @@ export async function POST(req: NextRequest) {
   if (!checkSecret(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json();
 
-  // Trade history push: { type: "trade", accountId, symbol, tradeType, lot, openPrice, closePrice, profit, openTime, closeTime }
+  // Trade history push: { type: "trade", accountId, dealTicket, symbol, tradeType, lot, openPrice, closePrice, profit, openTime, closeTime }
   if (body.type === "trade") {
-    const { accountId, symbol, tradeType, lot, openPrice, closePrice, profit, openTime, closeTime } = body;
-    await prisma.tradeHistory.create({
-      data: {
-        accountId, symbol,
-        type: tradeType,
-        lot: Number(lot),
-        openPrice: Number(openPrice),
-        closePrice: Number(closePrice),
-        profit: Number(profit),
-        openTime: new Date(openTime),
-        closeTime: new Date(closeTime),
-      },
-    });
+    const { accountId, dealTicket, symbol, tradeType, lot, openPrice, closePrice, profit, openTime, closeTime } = body;
+    const data = {
+      accountId, symbol,
+      dealTicket: dealTicket ? String(dealTicket) : undefined,
+      type: tradeType,
+      lot: Number(lot),
+      openPrice: Number(openPrice),
+      closePrice: Number(closePrice),
+      profit: Number(profit),
+      openTime: new Date(openTime),
+      closeTime: new Date(closeTime),
+    };
+    if (dealTicket) {
+      // upsert: bỏ qua nếu deal đã tồn tại (tránh duplicate khi nhiều worker)
+      await prisma.tradeHistory.upsert({
+        where: { dealTicket: String(dealTicket) },
+        create: data,
+        update: {},
+      });
+    } else {
+      await prisma.tradeHistory.create({ data });
+    }
     return NextResponse.json({ ok: true });
   }
 

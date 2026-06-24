@@ -163,6 +163,7 @@ def _fetch_new_deals(since_ts: float) -> list[dict]:
             open_time  = datetime.datetime.fromtimestamp(d.time).isoformat()
 
         results.append({
+            "dealTicket": str(d.ticket),
             "symbol":     d.symbol,
             "tradeType":  trade_type,
             "lot":        d.volume,
