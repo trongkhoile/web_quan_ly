@@ -6,5 +6,38 @@
 }
 
 body {
-  background-color: #030712;
+  background-color: #ffffff;
 }
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@keyframes float1 {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes float2 {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(10px); }
+}
+@keyframes float3 {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  50% { transform: translateY(-8px) translateX(6px); }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.anim-blink   { animation: blink 1s step-end infinite; }
+.anim-float1  { animation: float1 4s ease-in-out infinite; }
+.anim-float2  { animation: float2 5s ease-in-out infinite; }
+.anim-float3  { animation: float3 6s ease-in-out infinite; }
+.anim-fade-up { animation: fadeInUp 0.6s ease both; }
+
+.faq-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+.faq-content.open { max-height: 400px; }
