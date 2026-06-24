@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 const T = "#00b894";
 const NAVY = "#0d2137";
 
-const heroWords = ["Tự Động", "Thông Minh", "Chuyên Nghiệp", "24/7"];
+const heroWords = ["Tự Động", "Forex", "Crypto", "24/7"];
 
 function useVisible(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null);
