@@ -117,11 +117,7 @@ export default function LandingPage() {
             <span className="font-black text-2xl leading-none" style={{ color: T }}>U</span>
             <span className="font-black text-xl text-[#0d2137] leading-none">TRAL BOT PRO</span>
           </Link>
-          <div className="hidden md:flex items-center gap-7">
-            {["Trang chủ","Sản phẩm","Giá cả","Blog","Công ty"].map((l) => (
-              <Link key={l} href="#" className="text-sm text-gray-600 hover:text-[#00b894] transition font-medium">{l}</Link>
-            ))}
-          </div>
+          <div className="hidden md:flex items-center gap-7"></div>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-[#00b894] transition px-3 py-2">Đăng nhập</Link>
             <Link href="/login" className="text-sm font-bold text-white px-5 py-2.5 rounded-lg hover:opacity-90 transition" style={{ background: T }}>
@@ -406,40 +402,8 @@ export default function LandingPage() {
               <p className="text-gray-500 text-xs leading-relaxed mb-5">
                 UTRAL BOT PRO là công cụ xây dựng bot giao dịch tự động được hỗ trợ bởi AI. Được thiết kế cho mọi thị trường. Hỗ trợ tích hợp ChatGPT để có phân tích chuyên sâu hơn.
               </p>
-              <div className="flex gap-2">
-                {[
-                  { l:"f", title:"Facebook" },
-                  { l:"ig", title:"Instagram" },
-                  { l:"tg", title:"Telegram" },
-                  { l:"yt", title:"Youtube" },
-                ].map((s) => (
-                  <div key={s.l} title={s.title}
-                    className="w-9 h-9 rounded-full flex items-center justify-center border-2 text-xs font-bold cursor-pointer hover:opacity-80 transition"
-                    style={{ borderColor: T, color: T }}>
-                    {s.l.toUpperCase()}
-                  </div>
-                ))}
-              </div>
             </div>
 
-            <div className="flex gap-16 flex-wrap">
-              <div>
-                <h4 className="font-bold text-sm mb-4" style={{ color: T }}>Công ty</h4>
-                <div className="space-y-3">
-                  {["Điều khoản","Chính sách","Thông báo pháp lý"].map((l) => (
-                    <div key={l}><Link href="#" className="text-gray-500 text-sm hover:text-[#00b894] transition">{l}</Link></div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h4 className="font-bold text-sm mb-4" style={{ color: T }}>Liên kết</h4>
-                <div className="space-y-3">
-                  {["Hỗ trợ","Blog","Liên hệ"].map((l) => (
-                    <div key={l}><Link href="#" className="text-gray-500 text-sm hover:text-[#00b894] transition">{l}</Link></div>
-                  ))}
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Disclaimer */}
