@@ -150,8 +150,8 @@ export default function LandingPage() {
             <p className="text-xs text-gray-400 mt-3 text-center md:text-left">Không cần thẻ tín dụng.</p>
           </div>
 
-          {/* Right — floating network */}
-          <div className="flex-1 flex justify-center items-center relative h-[260px] sm:h-[320px] md:h-[400px] w-full max-w-[420px]">
+          {/* Right — floating network (hidden on mobile) */}
+          <div className="hidden md:flex flex-1 justify-center items-center relative h-[400px] w-full max-w-[420px]">
             {/* Dashed lines — dynamically updated by RAF loop */}
             <svg ref={netSvgRef} className="absolute inset-0 w-full h-full" viewBox="0 0 420 400" style={{ zIndex:1 }}>
               {[0,1,2,3,4,5].map(i => (
