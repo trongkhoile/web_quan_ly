@@ -388,13 +388,17 @@ def worker_process(
         else:
             logging.error("❌ Không bật được Algo Trading sau 10 lần thử")
 
-    # Thêm các symbol hay dùng vào Market Watch
-    symbols = os.environ.get("MT5_SYMBOLS", "XAUUSD,XAUUSDm,EURUSD,GBPUSD").split(",")
-    for sym in symbols:
-        sym = sym.strip()
-        if sym and mt5.symbol_info(sym) is not None:
-            mt5.symbol_select(sym, True)
-            logging.info(f"Thêm {sym} vào Market Watch")
+    # Thêm các symbol hay dùng vào Market Watch (thử các hậu tố nếu cần)
+    symbols = os.environ.get("MT5_SYMBOLS", "XAUUSD,EURUSD,GBPUSD").split(",")
+    for raw in symbols:
+        raw = raw.strip()
+        if not raw:
+            continue
+        for candidate in [raw, raw + "m", raw + ".v", raw + ".pro"]:
+            if mt5.symbol_info(candidate) is not None:
+                mt5.symbol_select(candidate, True)
+                logging.info(f"Thêm {candidate} vào Market Watch")
+                break
 
     # Báo startup thành công
     result_queue.put({"account_id": account_id, "name": name, "success": True, "startup": True})
