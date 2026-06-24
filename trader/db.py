@@ -44,3 +44,7 @@ def set_terminal_path(account_id: str, terminal_path: str):
 
 def log_trade(signal_text: str, status: str, result: str):
     _api("POST", "", json={"signal": signal_text, "status": status, "result": result})
+
+
+def push_trade_history(account_id: str, deal: dict):
+    _api("POST", "", json={"type": "trade", "accountId": account_id, **deal})

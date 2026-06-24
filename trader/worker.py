@@ -4,8 +4,10 @@ Process khởi động → kết nối MT5 → giữ kết nối liên tục →
 Không initialize/shutdown giữa các lệnh → tốc độ ~0.5-1 giây/lệnh.
 """
 
+import datetime
 import multiprocessing as mp
 import os
+import queue
 import random
 import time
 import logging
@@ -131,6 +133,48 @@ def _close_positions(symbol: str) -> str:
     return f"Đóng {closed}/{len(positions)} vị thế"
 
 
+def _fetch_new_deals(since_ts: float) -> list[dict]:
+    """Lấy các lệnh đã đóng kể từ since_ts (unix timestamp)."""
+    from_dt = datetime.datetime.fromtimestamp(since_ts)
+    to_dt   = datetime.datetime.now()
+    deals = mt5.history_deals_get(from_dt, to_dt)
+    if not deals:
+        return []
+
+    results = []
+    for d in deals:
+        if d.entry != mt5.DEAL_ENTRY_OUT:
+            continue
+        # Lấy tất cả deals của position để tìm deal mở
+        pos_deals = mt5.history_deals_get(position=d.position_id)
+        in_deal = None
+        if pos_deals:
+            ins = [pd for pd in pos_deals if pd.entry == mt5.DEAL_ENTRY_IN]
+            if ins:
+                in_deal = ins[0]
+
+        if in_deal:
+            trade_type = "buy" if in_deal.type == mt5.DEAL_TYPE_BUY else "sell"
+            open_price = in_deal.price
+            open_time  = datetime.datetime.fromtimestamp(in_deal.time).isoformat()
+        else:
+            trade_type = "buy" if d.type == mt5.DEAL_TYPE_SELL else "sell"
+            open_price = 0.0
+            open_time  = datetime.datetime.fromtimestamp(d.time).isoformat()
+
+        results.append({
+            "symbol":     d.symbol,
+            "tradeType":  trade_type,
+            "lot":        d.volume,
+            "openPrice":  open_price,
+            "closePrice": d.price,
+            "profit":     round(d.profit + d.commission + d.swap, 2),
+            "openTime":   open_time,
+            "closeTime":  datetime.datetime.fromtimestamp(d.time).isoformat(),
+        })
+    return results
+
+
 def _reconnect(terminal_path: str, login: int, password: str, server: str) -> bool:
     mt5.shutdown()
     time.sleep(2)
@@ -227,10 +271,12 @@ def worker_process(
     # Báo startup thành công
     result_queue.put({"account_id": account_id, "name": name, "success": True, "startup": True})
 
+    last_history_ts = time.time()
+
     # ── Vòng lặp chờ tín hiệu ────────────────────────────────────────────
     while True:
         try:
-            item = signal_queue.get()
+            item = signal_queue.get(timeout=60)
 
             if item == SHUTDOWN_SIGNAL:
                 logging.info("Nhận lệnh tắt")
@@ -255,6 +301,20 @@ def worker_process(
                 "success": True,
                 "message": msg,
             })
+
+        except queue.Empty:
+            # Mỗi 60s: poll lịch sử MT5 để bắt TP/SL tự đóng
+            try:
+                deals = _fetch_new_deals(last_history_ts)
+                if deals:
+                    result_queue.put({
+                        "account_id": account_id,
+                        "name": name,
+                        "trade_history": deals,
+                    })
+                last_history_ts = time.time()
+            except Exception as e:
+                logging.warning(f"Lỗi poll lịch sử: {e}")
 
         except Exception as e:
             result_queue.put({

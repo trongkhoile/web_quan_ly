@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, ContextTypes, MessageHandler, filters
 
-from db import get_active_accounts, get_pending_accounts, update_account_status, log_trade, set_terminal_path
+from db import get_active_accounts, get_pending_accounts, update_account_status, log_trade, set_terminal_path, push_trade_history
 from signal_parser import parse_signal, TradeSignal
 from terminal_manager import (
     allocate_terminal,
@@ -91,6 +91,17 @@ async def drain_result_queue():
                     provisioned_ids.discard(acc_id)
                     if t_path:
                         await asyncio.get_event_loop().run_in_executor(None, kill_terminal, t_path)
+            elif result.get("trade_history"):
+                # Lịch sử lệnh đóng (TP/SL hoặc CLOSE) → push lên web
+                acc_id = result.get("account_id", "")
+                for deal in result["trade_history"]:
+                    try:
+                        await asyncio.get_event_loop().run_in_executor(
+                            None, push_trade_history, acc_id, deal
+                        )
+                        logger.info(f"[{result['name']}] 📊 Lưu lịch sử: {deal['symbol']} {deal['tradeType']} profit={deal['profit']}")
+                    except Exception as e:
+                        logger.error(f"Lỗi lưu lịch sử lệnh: {e}")
             else:
                 await trade_results.put(result)
 
