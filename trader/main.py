@@ -370,7 +370,7 @@ async def run():
         await app.updater.start_polling(
             allowed_updates=["message", "channel_post", "edited_message"]
         )
-        logger.info(f"Bot đang chạy | Group: {GROUP_ID}")
+        logger.info(f"Bot đang chạy | DCA group: {GROUP_ID_DCA} | Simple group: {GROUP_ID_SIMPLE}")
         try:
             await asyncio.Event().wait()
         except (asyncio.CancelledError, KeyboardInterrupt):
