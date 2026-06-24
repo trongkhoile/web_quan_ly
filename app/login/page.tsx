@@ -28,6 +28,11 @@ export default function LoginPage() {
     } catch { setCaptchaError(true); }
   }, []);
 
+  // Nếu đã đăng nhập thì chuyển thẳng vào dashboard
+  useEffect(() => {
+    fetch("/api/auth/me").then(r => { if (r.ok) router.replace("/dashboard"); });
+  }, [router]);
+
   useEffect(() => { if (mode === "register") fetchCaptcha(); }, [mode, fetchCaptcha]);
 
   async function handleSubmit(e: React.FormEvent) {
