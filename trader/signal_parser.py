@@ -60,6 +60,11 @@ def parse_signal(text: str) -> Optional[TradeSignal]:
     if m:
         return TradeSignal(action="CLOSE", symbol=m.group(1))
 
+    # Bỏ qua tin thông báo (đã khớp, đã đóng, v.v.) — không phải tín hiệu mới
+    _IGNORE_KEYWORDS = ("DA KHOP", "KHOP LENH", "DA DONG", "DA MO", "PENDING", "FILLED")
+    if any(kw in first for kw in _IGNORE_KEYWORDS):
+        return None
+
     # Tìm BUY hoặc SELL trên dòng đầu
     action_m = re.search(r"\b(BUY|SELL)\b", first)
     if not action_m:
