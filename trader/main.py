@@ -41,9 +41,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
-GROUP_ID  = int(os.environ["TELEGRAM_GROUP_ID"])
-BASE_EXE  = os.environ.get("MT5_TERMINAL_EXE", r"C:\Program Files\MetaTrader 5\terminal64.exe")
+BOT_TOKEN        = os.environ["TELEGRAM_BOT_TOKEN"]
+GROUP_ID_DCA     = int(os.environ["TELEGRAM_GROUP_ID"])          # Nhóm lệnh DCA
+GROUP_ID_SIMPLE  = int(os.environ.get("TELEGRAM_GROUP_ID_SIMPLE", "0"))  # Nhóm lệnh đơn
+BASE_EXE         = os.environ.get("MT5_TERMINAL_EXE", r"C:\Program Files\MetaTrader 5\terminal64.exe")
 
 # ── Single-instance lock (Windows) ────────────────────────────────────────────
 _LOCK_FILE_PATH = os.path.join(os.path.dirname(__file__), ".trader.lock")
@@ -260,9 +261,20 @@ async def watch_accounts_changes():
 
 # ── Xử lý tín hiệu Telegram ────────────────────────────────────────────────
 
-async def dispatch_signal(signal_text: str, signal: TradeSignal):
-    # Chỉ gửi tới account đang active (bỏ qua account đã tắt toggle)
-    queues = [(aid, q) for aid, q in worker_queues.items() if aid not in inactive_ids]
+async def dispatch_signal(signal_text: str, signal: TradeSignal, source: str = "dca"):
+    """
+    source: "dca" (từ nhóm DCA) hoặc "simple" (từ nhóm lệnh đơn)
+    Worker chỉ nhận nếu signal_mode khớp:
+      - mode "dca"    → chỉ nhận source "dca"
+      - mode "simple" → chỉ nhận source "simple"
+      - mode "both"   → nhận cả hai
+    """
+    queues = [
+        (aid, q) for aid, q in worker_queues.items()
+        if aid not in inactive_ids
+        and (worker_signal_modes.get(aid, "both") == "both"
+             or worker_signal_modes.get(aid) == source)
+    ]
     n = len(queues)
 
     if n == 0:
@@ -310,12 +322,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message or update.channel_post
     if not message or not message.text:
         return
-    if message.chat.id != GROUP_ID:
+
+    chat_id = message.chat.id
+    if chat_id == GROUP_ID_DCA:
+        source = "dca"
+    elif GROUP_ID_SIMPLE and chat_id == GROUP_ID_SIMPLE:
+        source = "simple"
+    else:
         return
+
     signal = parse_signal(message.text)
     if signal is None:
         return
-    await dispatch_signal(message.text, signal)
+    await dispatch_signal(message.text, signal, source)
 
 
 # ── Main ────────────────────────────────────────────────────────────────────
@@ -340,7 +359,8 @@ async def run():
     await load_existing_accounts()
 
     app = Application.builder().token(BOT_TOKEN).build()
-    app.add_handler(MessageHandler(filters.TEXT & filters.Chat(GROUP_ID), handle_message))
+    allowed_chats = [GROUP_ID_DCA] + ([GROUP_ID_SIMPLE] if GROUP_ID_SIMPLE else [])
+    app.add_handler(MessageHandler(filters.TEXT & filters.Chat(allowed_chats), handle_message))
 
     async with app:
         await app.start()
