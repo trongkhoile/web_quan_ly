@@ -27,7 +27,7 @@ export default function DashboardPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [trades, setTrades] = useState<Trade[]>([]);
   const [tab, setTab] = useState<"accounts" | "history">("accounts");
-  const [form, setForm] = useState({ name: "", mt5Login: "", mt5Password: "", mt5Server: "" });
+  const [form, setForm] = useState({ name: "", mt5Login: "", mt5Password: "", mt5Server: "DupoinMarkets-Real" });
   const [loading, setLoading] = useState(false);
   const [toggling, setToggling] = useState<string | null>(null);
   const [changingMode, setChangingMode] = useState<string | null>(null);
@@ -82,7 +82,7 @@ export default function DashboardPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setMessage({ type: "success", text: "Đang kết nối tới MT5, vui lòng chờ kết quả trước khi thêm tài khoản mới..." });
-      setForm({ name: "", mt5Login: "", mt5Password: "", mt5Server: "" });
+      setForm({ name: "", mt5Login: "", mt5Password: "", mt5Server: "DupoinMarkets-Real" });
       setShowForm(false); fetchAccounts(); setPendingId(data.id);
     } catch (err) { setMessage({ type: "error", text: (err as Error).message }); } finally { setLoading(false); }
   }
