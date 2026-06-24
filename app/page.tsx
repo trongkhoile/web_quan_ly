@@ -257,6 +257,7 @@ export default function LandingPage() {
               { title:"Bao phủ mọi thị trường",        desc:"Giao dịch trên mọi thị trường tài chính lớn, bao gồm ngoại hối, tiền điện tử, cổ phiếu, vàng và chỉ số thông qua một nền tảng mạnh mẽ." },
               { title:"Quyết định dựa trên trí tuệ nhân tạo", desc:"Nhận những phân tích chuyên sâu dựa trên AI, kết hợp tâm lý thị trường thực, tin tức và dữ liệu lịch sử." },
               { title:"Giao dịch hoàn toàn tự động",   desc:"Tự động hóa toàn bộ quy trình bằng cách quét thị trường, phân tích cơ hội và thực hiện giao dịch chính xác, hoàn toàn rảnh tay." },
+              { title:"Quản lý rủi ro thông minh",     desc:"Hệ thống tự động kiểm soát drawdown, cắt lỗ và bảo vệ vốn theo thời gian thực, giúp bạn giao dịch an toàn và bền vững lâu dài." },
             ].map((f, i) => (
               <div key={i}
                 className={`flex gap-4 p-5 rounded-xl border border-gray-100 bg-white shadow-sm hover:shadow-md hover:-translate-y-1 transition-all ${featuresRef.visible ? "anim-fade-up" : "opacity-0"}`}
