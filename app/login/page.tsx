@@ -99,36 +99,43 @@ export default function LoginPage() {
   }
 
   const inputCls =
-    "w-full rounded-xl border border-gray-700 bg-gray-800/60 px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition";
+    "w-full rounded-xl border border-[#1e3558] bg-[#0a1628] px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-[#14b8c8] focus:outline-none focus:ring-1 focus:ring-[#14b8c8]/30 transition";
 
   return (
-    <div className="min-h-screen bg-[#060d1a] flex items-center justify-center px-4">
-      {/* Background blobs */}
-      <div className="pointer-events-none fixed top-1/4 left-1/4 w-96 h-96 bg-emerald-500/8 rounded-full blur-3xl" />
-      <div className="pointer-events-none fixed bottom-1/4 right-1/4 w-64 h-64 bg-blue-500/8 rounded-full blur-3xl" />
+    <div className="min-h-screen bg-[#0a1628] flex items-center justify-center px-4">
+      <div className="pointer-events-none fixed top-1/4 left-1/4 w-96 h-96 bg-[#14b8c8]/8 rounded-full blur-3xl" />
+      <div className="pointer-events-none fixed bottom-1/4 right-1/4 w-64 h-64 bg-orange-500/8 rounded-full blur-3xl" />
 
       <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 group">
-            <span className="text-xl font-bold text-white group-hover:text-emerald-400 transition">
-              Giao Dịch Tự Động
-            </span>
+          <Link href="/" className="inline-flex flex-col items-center gap-1 group">
+            <div className="flex items-center gap-2">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <rect width="32" height="32" rx="7" fill="#14b8c8" fillOpacity="0.2" />
+                <path d="M6 24 L11 10 L16 19 L20 13 L26 24" stroke="#14b8c8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M11 7 L16 19 L21 7" stroke="#f97316" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="text-[#14b8c8] font-black text-xl tracking-wide group-hover:opacity-80 transition">
+                UTRAL BOT PRO
+              </span>
+            </div>
+            <span className="text-orange-400 text-[10px] font-bold tracking-widest">PREMIUM TRADING</span>
           </Link>
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="text-sm text-gray-500 mt-3">
             {mode === "login" ? "Đăng nhập để quản lý tài khoản MT5" : "Tạo tài khoản miễn phí"}
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-gray-900/80 backdrop-blur border border-gray-800 rounded-2xl p-8 shadow-2xl">
+        <div className="bg-[#0d1f3c] border border-[#1e3558] rounded-2xl p-8 shadow-2xl">
           {/* Tab switcher */}
-          <div className="flex rounded-xl bg-gray-800/60 p-1 mb-7">
+          <div className="flex rounded-xl bg-[#0a1628] p-1 mb-7">
             <button
               onClick={() => switchMode("login")}
               className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition ${
                 mode === "login"
-                  ? "bg-emerald-500 text-black shadow"
+                  ? "bg-[#14b8c8] text-white shadow"
                   : "text-gray-400 hover:text-white"
               }`}
             >
@@ -138,7 +145,7 @@ export default function LoginPage() {
               onClick={() => switchMode("register")}
               className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition ${
                 mode === "register"
-                  ? "bg-emerald-500 text-black shadow"
+                  ? "bg-[#14b8c8] text-white shadow"
                   : "text-gray-400 hover:text-white"
               }`}
             >
@@ -220,7 +227,7 @@ export default function LoginPage() {
                     Xác thực toán học
                   </label>
                   <div className="flex gap-2 items-center">
-                    <div className="flex-1 bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3 text-sm">
+                    <div className="flex-1 bg-[#0a1628] border border-[#1e3558] rounded-xl px-4 py-3 text-sm">
                       {captchaError ? (
                         <button
                           type="button"
@@ -230,7 +237,7 @@ export default function LoginPage() {
                           Lỗi — nhấn để thử lại
                         </button>
                       ) : captcha ? (
-                        <span className="text-emerald-400 font-mono font-bold">{captcha.question}</span>
+                        <span className="text-[#14b8c8] font-mono font-bold">{captcha.question}</span>
                       ) : (
                         <span className="text-gray-500">Đang tải...</span>
                       )}
@@ -241,12 +248,12 @@ export default function LoginPage() {
                       value={form.captchaAnswer}
                       onChange={(e) => setForm({ ...form, captchaAnswer: e.target.value })}
                       required
-                      className="w-20 rounded-xl border border-gray-700 bg-gray-800/60 px-3 py-3 text-sm text-white text-center placeholder-gray-500 focus:border-emerald-500 focus:outline-none transition"
+                      className="w-20 rounded-xl border border-[#1e3558] bg-[#0a1628] px-3 py-3 text-sm text-white text-center placeholder-gray-500 focus:border-[#14b8c8] focus:outline-none transition"
                     />
                     <button
                       type="button"
                       onClick={() => { fetchCaptcha(); setForm((f) => ({ ...f, captchaAnswer: "" })); }}
-                      className="w-10 h-11 flex items-center justify-center rounded-xl border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white transition"
+                      className="w-10 h-11 flex items-center justify-center rounded-xl border border-[#1e3558] text-gray-400 hover:border-[#14b8c8] hover:text-[#14b8c8] transition"
                       title="Đổi phép tính"
                     >
                       ↻
@@ -277,7 +284,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 px-4 py-3 text-sm font-bold text-black transition mt-2"
+              className="w-full rounded-xl bg-[#14b8c8] hover:bg-[#0ea0ae] disabled:opacity-50 px-4 py-3 text-sm font-bold text-white transition mt-2"
             >
               {loading
                 ? "Đang xử lý..."
@@ -289,7 +296,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-gray-600 mt-6">
-          <Link href="/" className="hover:text-gray-400 transition">
+          <Link href="/" className="hover:text-[#14b8c8] transition">
             ← Về trang chủ
           </Link>
         </p>
