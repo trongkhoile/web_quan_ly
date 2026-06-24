@@ -252,17 +252,17 @@ export default function LandingPage() {
           </div>
           <div className="grid md:grid-cols-3 gap-5">
             {[
-              { icon:"📋", title:"Tín hiệu đã được chứng minh",  desc:"Truy cập 10+ chiến lược vào lệnh đáng tin cậy, được kiểm nghiệm bởi các nhà giao dịch trên toàn thế giới để cho bạn nền tảng vững chắc." },
-              { icon:"⚙️", title:"Công cụ xây dựng chiến lược tùy chỉnh", desc:"Thiết kế và khởi chạy bot giao dịch riêng với các chỉ báo và cài đặt tùy chỉnh, giúp bạn kiểm soát hoàn toàn phương pháp giao dịch." },
-              { icon:"🌐", title:"Bao phủ mọi thị trường",        desc:"Giao dịch trên mọi thị trường tài chính lớn, bao gồm ngoại hối, tiền điện tử, cổ phiếu, vàng và chỉ số thông qua một nền tảng mạnh mẽ." },
-              { icon:"🧠", title:"Quyết định dựa trên trí tuệ nhân tạo", desc:"Nhận những phân tích chuyên sâu dựa trên AI, kết hợp tâm lý thị trường thời gian thực, tin tức và dữ liệu lịch sử." },
-              { icon:"🔄", title:"Giao dịch hoàn toàn tự động",   desc:"Tự động hóa toàn bộ quy trình bằng cách quét thị trường, phân tích cơ hội và thực hiện giao dịch chính xác, hoàn toàn rảnh tay." },
+              { title:"Tín hiệu đã được chứng minh",  desc:"Truy cập 10+ chiến lược vào lệnh đáng tin cậy, được kiểm nghiệm bởi các nhà giao dịch trên toàn thế giới để cho bạn nền tảng vững chắc." },
+              { title:"Công cụ xây dựng chiến lược tùy chỉnh", desc:"Thiết kế và khởi chạy bot giao dịch riêng với các chỉ báo và cài đặt tùy chỉnh, giúp bạn kiểm soát hoàn toàn phương pháp giao dịch." },
+              { title:"Bao phủ mọi thị trường",        desc:"Giao dịch trên mọi thị trường tài chính lớn, bao gồm ngoại hối, tiền điện tử, cổ phiếu, vàng và chỉ số thông qua một nền tảng mạnh mẽ." },
+              { title:"Quyết định dựa trên trí tuệ nhân tạo", desc:"Nhận những phân tích chuyên sâu dựa trên AI, kết hợp tâm lý thị trường thực, tin tức và dữ liệu lịch sử." },
+              { title:"Giao dịch hoàn toàn tự động",   desc:"Tự động hóa toàn bộ quy trình bằng cách quét thị trường, phân tích cơ hội và thực hiện giao dịch chính xác, hoàn toàn rảnh tay." },
             ].map((f, i) => (
               <div key={i}
                 className={`flex gap-4 p-5 rounded-xl border border-gray-100 bg-white shadow-sm hover:shadow-md hover:-translate-y-1 transition-all ${featuresRef.visible ? "anim-fade-up" : "opacity-0"}`}
                 style={{ animationDelay: `${i * 0.1}s` }}>
-                <div className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: "rgba(0,184,148,0.1)" }}>
-                  {f.icon}
+                <div className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm" style={{ background: "rgba(0,184,148,0.1)", color: T }}>
+                  {String(i + 1).padStart(2, "0")}
                 </div>
                 <div>
                   <h3 className="font-bold text-sm text-[#0d2137] mb-1">{f.title}</h3>
@@ -282,9 +282,9 @@ export default function LandingPage() {
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { n:"1", icon:"🤖", title:"Xây dựng Bot Giao Dịch của Bạn",   desc:"Chọn thị trường ưa thích, áp dụng các chiến lược đáng tin cậy, tùy chỉnh cài đặt bot của bạn, và cuối cùng tải xuống phiên bản MT5 đã biên dịch.", delay:"0s" },
-              { n:"2", icon:"🔗", title:"Kết nối tài khoản giao dịch của bạn", desc:"Nhập bot đã biên dịch vào nền tảng MetaTrader, liên kết nó với tài khoản giao dịch của bạn và chuẩn bị cho giao dịch thực hoặc giao dịch thử nghiệm.", delay:"0.15s" },
-              { n:"3", icon:"✅", title:"Bắt đầu giao dịch tự động",          desc:"Hãy để chiến lược tự động của bạn xử lý các giao dịch một cách chính xác, được hướng dẫn bởi trí tuệ nhân tạo thời gian thực, cùng với phân tích kỹ thuật và cơ bản.", delay:"0.3s" },
+              { n:"1", title:"Xây dựng Bot Giao Dịch của Bạn",   desc:"Chọn thị trường ưa thích, áp dụng các chiến lược đáng tin cậy, tùy chỉnh cài đặt bot của bạn, và cuối cùng tải xuống phiên bản MT5 đã biên dịch.", delay:"0s" },
+              { n:"2", title:"Kết nối tài khoản giao dịch của bạn", desc:"Nhập bot đã biên dịch vào nền tảng MetaTrader, liên kết nó với tài khoản giao dịch của bạn và chuẩn bị cho giao dịch thực hoặc giao dịch thử nghiệm.", delay:"0.15s" },
+              { n:"3", title:"Bắt đầu giao dịch tự động",          desc:"Hãy để chiến lược tự động của bạn xử lý các giao dịch một cách chính xác, được hướng dẫn bởi trí tuệ nhân tạo thời gian thực, cùng với phân tích kỹ thuật và cơ bản.", delay:"0.3s" },
             ].map((s) => (
               <div key={s.n}
                 className={`rounded-2xl p-7 border-2 bg-white relative hover:shadow-lg transition-shadow ${stepsRef.visible ? "anim-fade-up" : "opacity-0"}`}
@@ -292,7 +292,7 @@ export default function LandingPage() {
                 <div className="absolute -top-4 left-6 w-8 h-8 rounded-full flex items-center justify-center font-black text-white text-sm shadow-md" style={{ background: T }}>
                   {s.n}
                 </div>
-                <div className="text-4xl mb-4 mt-2">{s.icon}</div>
+                <div className="text-3xl font-black mb-4 mt-2" style={{ color: "rgba(0,184,148,0.18)" }}>{s.n}</div>
                 <h3 className="font-bold text-[#0d2137] mb-2 text-sm leading-snug">{s.title}</h3>
                 <p className="text-gray-500 text-xs leading-relaxed">{s.desc}</p>
               </div>

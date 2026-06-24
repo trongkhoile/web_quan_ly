@@ -44,13 +44,13 @@ export default function DashboardPage() {
         const list: Account[] = await res.json(); setAccounts(list);
         const acc = list.find((a) => a.id === pendingId);
         if (!acc) { setPendingId(null); return; }
-        if (acc.status === "connected") { setPendingId(null); setMessage({ type: "success", text: `✅ Tài khoản "${acc.name}" đã kết nối MT5 thành công!` }); }
-        else if (acc.status === "failed") { setPendingId(null); setMessage({ type: "error", text: `❌ Sai ID hoặc mật khẩu MT5. Vui lòng kiểm tra lại và xóa tài khoản này.` }); }
+        if (acc.status === "connected") { setPendingId(null); setMessage({ type: "success", text: `Tài khoản "${acc.name}" đã kết nối MT5 thành công!` }); }
+        else if (acc.status === "failed") { setPendingId(null); setMessage({ type: "error", text: `Sai ID hoặc mật khẩu MT5. Vui lòng kiểm tra lại và xóa tài khoản này.` }); }
       } catch { /* ignore */ }
     }, 4000);
     const timeout = setTimeout(() => {
       clearInterval(interval); setPendingId(null);
-      setMessage({ type: "error", text: "⏱ Kết nối MT5 mất quá lâu. Kiểm tra lại thông tin hoặc thử khởi động lại." });
+      setMessage({ type: "error", text: "Kết nối MT5 mất quá lâu. Kiểm tra lại thông tin hoặc thử khởi động lại." });
     }, 120_000);
     return () => { clearInterval(interval); clearTimeout(timeout); };
   }, [pendingId]);
@@ -61,7 +61,7 @@ export default function DashboardPage() {
       const res = await fetch("/api/accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setMessage({ type: "success", text: "⏳ Đang kết nối tới MT5, vui lòng chờ..." });
+      setMessage({ type: "success", text: "Đang kết nối tới MT5, vui lòng chờ..." });
       setForm({ name: "", mt5Login: "", mt5Password: "", mt5Server: "" });
       setShowForm(false); fetchAccounts(); setPendingId(data.id);
     } catch (err) { setMessage({ type: "error", text: (err as Error).message }); } finally { setLoading(false); }
@@ -104,7 +104,7 @@ export default function DashboardPage() {
                 {user.isAdmin && (
                   <button onClick={() => router.push("/admin")}
                     className="rounded-lg bg-orange-50 border border-orange-200 px-3 py-1.5 text-xs font-semibold text-orange-600 hover:bg-orange-100 transition">
-                    ⚙ Quản trị
+                    Quản trị
                   </button>
                 )}
                 <button onClick={handleLogout}
@@ -189,7 +189,6 @@ export default function DashboardPage() {
 
             {accounts.length === 0 ? (
               <div className="border-2 border-dashed border-gray-200 rounded-2xl p-12 text-center">
-                <div className="text-4xl mb-3">📊</div>
                 <p className="text-gray-500 font-medium">Chưa có tài khoản MT5 nào</p>
                 <p className="text-gray-400 text-sm mt-1">Nhấn "+ Thêm tài khoản" để bắt đầu</p>
               </div>
@@ -269,7 +268,6 @@ export default function DashboardPage() {
             <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
               <h3 className="font-semibold mb-3 text-xs text-gray-400 uppercase tracking-wide">Hỗ trợ</h3>
               <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2.5">
-                <span style={{ color: T }}>💬</span>
                 <span className="text-sm font-medium" style={{ color: NAVY }}>Zalo: 0397583137</span>
               </div>
               <p className="text-gray-400 text-xs mt-2">Hỗ trợ 24/7 • Chuyên nghiệp • Uy tín</p>
