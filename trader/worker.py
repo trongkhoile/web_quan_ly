@@ -34,8 +34,8 @@ def _enable_algo_trading(terminal_path: str, at_lock=None) -> bool:
         if term and term.trade_allowed:
             return True  # đã bật rồi
         enable_algo_trading_by_path(terminal_path)
-    # Chờ ngoài lock — cho MT5 API cập nhật trạng thái
-    for _ in range(6):
+    # Chờ ngoài lock — cho MT5 API cập nhật trạng thái (tối đa 15s)
+    for _ in range(15):
         time.sleep(1)
         if mt5.terminal_info().trade_allowed:
             return True

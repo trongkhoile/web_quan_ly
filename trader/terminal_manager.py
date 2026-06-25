@@ -481,13 +481,16 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
                     attached = True
                 except Exception:
                     pass
-            win32gui.SetForegroundWindow(main_hwnd)
+            try:
+                win32gui.SetForegroundWindow(main_hwnd)
+            except Exception as sfg_err:
+                logger.debug(f"SetForegroundWindow: {sfg_err}")
             if attached:
                 try:
                     win32process.AttachThreadInput(fg_tid, mt5_tid, False)
                 except Exception:
                     pass
-            time.sleep(0.4)
+            time.sleep(0.5)
 
             win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
             win32api.keybd_event(ord('E'), 0, 0, 0)
