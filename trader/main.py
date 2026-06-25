@@ -145,17 +145,24 @@ def _provision_blocking(acc_id: str, name: str, login: int, password: str,
         terminal_path = allocate_terminal(BASE_EXE, login=login, server=server)
         set_terminal_path(acc_id, terminal_path)
         logger.info(f"[{name}] Terminal: {terminal_path}")
-    else:
-        config_dir = os.path.join(os.path.dirname(terminal_path), "config")
-        try:
-            _update_common_ini(config_dir, login, server)
-        except Exception as e:
-            logger.warning(f"[{name}] Không cập nhật được common.ini: {e}")
 
-    if not is_terminal_running(terminal_path):
-        logger.info(f"[{name}] Đang khởi động MT5...")
-        launch_terminal(terminal_path, login, password, server)
-        time.sleep(25)
+    # Luôn restart MT5 để common.ini [Experts] enabled=1 được áp dụng.
+    # SetForegroundWindow từ background process không hoạt động trên session này,
+    # nên không thể bật Algo Trading bằng Ctrl+E — restart là cách duy nhất đáng tin.
+    config_dir = os.path.join(os.path.dirname(terminal_path), "config")
+    try:
+        _update_common_ini(config_dir, login, server)
+    except Exception as e:
+        logger.warning(f"[{name}] Không cập nhật được common.ini: {e}")
+
+    if is_terminal_running(terminal_path):
+        logger.info(f"[{name}] Tắt MT5 cũ để khởi động lại với Algo Trading ON...")
+        kill_terminal(terminal_path)
+        time.sleep(2)
+
+    logger.info(f"[{name}] Đang khởi động MT5...")
+    launch_terminal(terminal_path, login, password, server)
+    time.sleep(25)
 
     q: mp.Queue = mp.Queue()
     worker_queues[acc_id] = q
