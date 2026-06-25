@@ -24,28 +24,29 @@ logger = logging.getLogger(__name__)
 
 def _enable_algo_trading(terminal_path: str, at_lock=None) -> bool:
     """
-    Gửi Ctrl+E một lần (có lock để serialize), rồi chờ NGOÀI lock tối đa 6s.
+    Thử focus MT5 và gửi Ctrl+E (có lock để serialize).
     Trả về True nếu trade_allowed bật thành công.
-    Chờ ngoài lock tránh: gửi Ctrl+E lần 2 khi MT5 API chưa cập nhật → toggle OFF.
+    Nếu focus chưa đạt được → trả về False ngay (caller retry sau 5s).
+    MT5 window tự nhiên lên foreground ~33s sau khi load xong → retry đủ lần sẽ thành công.
     """
     lock_ctx = at_lock if at_lock is not None else contextlib.nullcontext()
     with lock_ctx:
         term = mt5.terminal_info()
         if term and term.trade_allowed:
             return True  # đã bật rồi
-        enable_algo_trading_by_path(terminal_path)
-    # Chờ ngoài lock — cho MT5 API cập nhật trạng thái (tối đa 15s)
-    for i in range(15):
+        sent = enable_algo_trading_by_path(terminal_path)
+
+    if not sent:
+        # Focus chưa đạt — chờ 5s rồi báo caller retry
+        time.sleep(5)
+        return False
+
+    # Ctrl+E đã gửi — chờ MT5 API cập nhật (tối đa 5s)
+    for _ in range(5):
         time.sleep(1)
         t = mt5.terminal_info()
         if t and t.trade_allowed:
             return True
-        if i % 5 == 4:
-            acc = mt5.account_info()
-            logging.info(
-                f"Đang chờ Algo Trading: terminal.trade_allowed={t.trade_allowed if t else '?'} "
-                f"account.trade_expert={getattr(acc, 'trade_expert', '?')}"
-            )
     return False
 
 
@@ -410,7 +411,12 @@ def worker_process(
         })
         return
 
-    # Kiểm tra Algo Trading — MT5 reset về OFF khi terminal kết nối broker lần đầu.
+    # Chờ broker kết nối và áp dụng cấu hình (thường reset Algo Trading về OFF ở ~33s).
+    # Check quá sớm sẽ thấy True nhưng sau đó broker lật về False.
+    logging.info("Chờ 15s để broker ổn định trước khi kiểm tra Algo Trading...")
+    time.sleep(15)
+
+    # Kiểm tra Algo Trading — broker reset về OFF sau khi kết nối server.
     term = mt5.terminal_info()
     if term and not term.trade_allowed:
         acc = mt5.account_info()
@@ -419,13 +425,14 @@ def worker_process(
             f"| account.trade_allowed={getattr(acc, 'trade_allowed', '?')} "
             f"| account.trade_expert={getattr(acc, 'trade_expert', '?')}"
         )
-        for attempt in range(5):
+        for attempt in range(12):
             if _enable_algo_trading(terminal_path, at_lock):
                 logging.info("✅ Algo Trading đã BẬT")
                 break
-            logging.warning(f"Retry {attempt + 1}/5 bật Algo Trading...")
+            if attempt % 3 == 2:
+                logging.warning(f"Retry {attempt + 1}/12 bật Algo Trading (chờ MT5 ổn định)...")
         else:
-            logging.error("❌ Không bật được Algo Trading sau 5 lần thử")
+            logging.error("❌ Không bật được Algo Trading sau 12 lần thử (~60s)")
 
     # Thêm các symbol hay dùng vào Market Watch (thử các hậu tố nếu cần)
     symbols = os.environ.get("MT5_SYMBOLS", "XAUUSD,EURUSD,GBPUSD").split(",")
