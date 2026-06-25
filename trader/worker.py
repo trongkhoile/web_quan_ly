@@ -223,9 +223,9 @@ def _monitor_positions(
 
     while not stop_event.is_set():
         try:
-            # Kiểm tra Algo Trading mỗi 30s (10 vòng × 3s)
+            # Kiểm tra Algo Trading mỗi 5 phút (100 vòng × 3s)
             _algo_check_counter += 1
-            if _algo_check_counter >= 10:
+            if _algo_check_counter >= 100:
                 _algo_check_counter = 0
                 term = mt5.terminal_info()
                 if term and not term.trade_allowed and terminal_path:

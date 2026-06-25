@@ -462,11 +462,22 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
         fg_hwnd = win32gui.GetForegroundWindow()
         fg_tid  = win32process.GetWindowThreadProcessId(fg_hwnd)[0]
         mt5_tid = win32process.GetWindowThreadProcessId(main_hwnd)[0]
+        attached = False
         if fg_tid != mt5_tid:
-            win32process.AttachThreadInput(fg_tid, mt5_tid, True)
-        win32gui.SetForegroundWindow(main_hwnd)
-        if fg_tid != mt5_tid:
-            win32process.AttachThreadInput(fg_tid, mt5_tid, False)
+            try:
+                win32process.AttachThreadInput(fg_tid, mt5_tid, True)
+                attached = True
+            except Exception:
+                pass
+        try:
+            win32gui.SetForegroundWindow(main_hwnd)
+        except Exception:
+            pass
+        if attached:
+            try:
+                win32process.AttachThreadInput(fg_tid, mt5_tid, False)
+            except Exception:
+                pass
         time.sleep(0.5)
 
         win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
