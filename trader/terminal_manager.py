@@ -481,19 +481,28 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
                     attached = True
                 except Exception:
                     pass
-            try:
-                win32gui.SetForegroundWindow(main_hwnd)
-            except Exception as sfg_err:
-                logger.warning(f"SetForegroundWindow lỗi: {sfg_err}")
+            # Thử SetForegroundWindow tối đa 5 lần, 3s mỗi lần.
+            # MT5 window cần ~30s sau khi kết nối broker mới cho phép focus.
+            actual_fg = 0
+            for foc in range(5):
+                try:
+                    win32gui.SetForegroundWindow(main_hwnd)
+                except Exception:
+                    pass
+                actual_fg = win32gui.GetForegroundWindow()
+                if actual_fg == main_hwnd:
+                    break
+                if foc < 4:
+                    time.sleep(3)
+
             if attached:
                 try:
                     win32process.AttachThreadInput(fg_tid, mt5_tid, False)
                 except Exception:
                     pass
-            time.sleep(0.5)
 
-            actual_fg = win32gui.GetForegroundWindow()
             logger.info(f"Focus: hwnd={main_hwnd} actual={actual_fg} match={actual_fg == main_hwnd}")
+            time.sleep(0.3)
 
             win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
             win32api.keybd_event(ord('E'), 0, 0, 0)

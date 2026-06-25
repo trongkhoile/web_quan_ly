@@ -419,13 +419,13 @@ def worker_process(
             f"| account.trade_allowed={getattr(acc, 'trade_allowed', '?')} "
             f"| account.trade_expert={getattr(acc, 'trade_expert', '?')}"
         )
-        for attempt in range(3):
+        for attempt in range(5):
             if _enable_algo_trading(terminal_path, at_lock):
                 logging.info("✅ Algo Trading đã BẬT")
                 break
-            logging.warning(f"Retry {attempt + 1}/3 bật Algo Trading...")
+            logging.warning(f"Retry {attempt + 1}/5 bật Algo Trading...")
         else:
-            logging.error("❌ Không bật được Algo Trading sau 3 lần thử")
+            logging.error("❌ Không bật được Algo Trading sau 5 lần thử")
 
     # Thêm các symbol hay dùng vào Market Watch (thử các hậu tố nếu cần)
     symbols = os.environ.get("MT5_SYMBOLS", "XAUUSD,EURUSD,GBPUSD").split(",")
