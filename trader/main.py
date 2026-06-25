@@ -26,7 +26,6 @@ from terminal_manager import (
     is_terminal_running,
     kill_terminal,
     _update_common_ini,
-    enable_algo_trading_by_path,
 )
 from worker import SHUTDOWN_SIGNAL, worker_process  # noqa: F401
 
@@ -76,7 +75,7 @@ def _release_lock():
 
 # ── State ─────────────────────────────────────────────────────────────────
 mp_result_queue: mp.Queue = mp.Queue()          # Workers → main (multiprocessing Queue)
-mp_at_queue:     mp.Queue = mp.Queue()          # Workers → algo_trading_daemon (hàng đợi bật Ctrl+E)
+mp_at_lock:      mp.Lock  = mp.Lock()           # Cross-process lock: serialize Ctrl+E giữa workers
 trade_results:  asyncio.Queue                   # Kết quả trade (asyncio Queue, dùng trong async)
 worker_queues:  dict[str, mp.Queue] = {}        # account_id → input queue của worker
 worker_terminal_paths: dict[str, str] = {}      # account_id → terminal_path
@@ -85,28 +84,6 @@ worker_lots:         dict[str, float] = {}       # account_id → lot size
 worker_procs:   list[mp.Process]    = []
 provisioned_ids: set[str]           = set()     # Đã được provision (ngăn provision trùng)
 inactive_ids:    set[str]           = set()     # isActive=False (không nhận lệnh)
-
-
-# ── Daemon: xử lý hàng đợi bật Algo Trading (1 thread duy nhất gửi Ctrl+E) ─
-
-def _algo_trading_daemon():
-    """
-    Thread duy nhất nhận yêu cầu bật Algo Trading từ các worker process.
-    Xử lý tuần tự + cooldown 10s/terminal → không toggle OFF do Ctrl+E kép.
-    """
-    last_sent: dict[str, float] = {}
-    COOLDOWN = 10.0
-
-    while True:
-        try:
-            terminal_path = mp_at_queue.get(timeout=1)
-            now = time.time()
-            if now - last_sent.get(terminal_path, 0) < COOLDOWN:
-                continue  # bỏ qua, vừa gửi rồi
-            last_sent[terminal_path] = now
-            enable_algo_trading_by_path(terminal_path)
-        except Exception:
-            pass
 
 
 # ── Background task: drain mp.Queue → asyncio.Queue ───────────────────────
@@ -188,7 +165,7 @@ def _provision_blocking(acc_id: str, name: str, login: int, password: str,
 
     proc = mp.Process(
         target=worker_process,
-        args=(acc_id, name, login, password, server, terminal_path, q, mp_result_queue, mp_at_queue, lot),
+        args=(acc_id, name, login, password, server, terminal_path, q, mp_result_queue, mp_at_lock, lot),
         daemon=True,
         name=f"worker-{name}",
     )
@@ -378,9 +355,6 @@ async def run():
     logger.info("=" * 55)
     logger.info("  GIAO DỊCH TỰ ĐỘNG — PARALLEL MT5")
     logger.info("=" * 55)
-
-    import threading
-    threading.Thread(target=_algo_trading_daemon, daemon=True, name="algo-trading-daemon").start()
 
     asyncio.create_task(drain_result_queue())
     asyncio.create_task(watch_new_accounts())
