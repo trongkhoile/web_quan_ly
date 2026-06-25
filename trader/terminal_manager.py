@@ -453,28 +453,11 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
         found.sort(key=lambda x: len(x[1]), reverse=True)
         main_hwnd = found[0][0]
 
-        win32gui.ShowWindow(main_hwnd, 9)  # SW_RESTORE
-        time.sleep(0.2)
-
-        fg_hwnd = win32gui.GetForegroundWindow()
-        fg_tid  = win32process.GetWindowThreadProcessId(fg_hwnd)[0]
-        mt5_tid = win32process.GetWindowThreadProcessId(main_hwnd)[0]
-        attached = False
-        if fg_tid != mt5_tid:
-            try:
-                win32process.AttachThreadInput(fg_tid, mt5_tid, True)
-                attached = True
-            except Exception:
-                pass
-        try:
-            win32gui.SetForegroundWindow(main_hwnd)
-        except Exception:
-            pass
-        if attached:
-            try:
-                win32process.AttachThreadInput(fg_tid, mt5_tid, False)
-            except Exception:
-                pass
+        # Minimize → Restore: Windows tự đưa window lên foreground
+        # mà không cần SetForegroundWindow permission từ background process
+        win32gui.ShowWindow(main_hwnd, 6)   # SW_MINIMIZE
+        time.sleep(0.15)
+        win32gui.ShowWindow(main_hwnd, 9)   # SW_RESTORE → guaranteed foreground
         time.sleep(0.4)
 
         win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
