@@ -212,6 +212,7 @@ def _monitor_positions(
     result_queue: mp.Queue,
     stop_event: threading.Event,
     terminal_path: str = "",
+    at_lock=None,
 ):
     """
     Thread riêng: theo dõi positions mở mỗi 3 giây.
@@ -230,7 +231,7 @@ def _monitor_positions(
                 term = mt5.terminal_info()
                 if term and not term.trade_allowed and terminal_path:
                     logging.warning(f"[{name}] Algo Trading TẮT → đang bật lại...")
-                    enable_algo_trading_by_path(terminal_path)
+                    enable_algo_trading_by_path(terminal_path, lock=at_lock)
 
             current = mt5.positions_get() or []
             current_tickets = {pos.ticket for pos in current}
@@ -387,10 +388,8 @@ def worker_process(
     if term and not term.trade_allowed:
         logging.warning("⚠️  Algo Trading TẮT — đang bật từ worker...")
         # Dùng cross-process lock để chỉ 1 worker gửi Ctrl+E tại 1 thời điểm
-        lock_ctx = at_lock if at_lock else __import__("contextlib").nullcontext()
         for attempt in range(10):
-            with lock_ctx:
-                enable_algo_trading_by_path(terminal_path)
+            enable_algo_trading_by_path(terminal_path, lock=at_lock)
             time.sleep(2)
             term = mt5.terminal_info()
             if term and term.trade_allowed:
@@ -419,7 +418,7 @@ def worker_process(
     stop_event = threading.Event()
     monitor_thread = threading.Thread(
         target=_monitor_positions,
-        args=(account_id, name, result_queue, stop_event, terminal_path),
+        args=(account_id, name, result_queue, stop_event, terminal_path, at_lock),
         daemon=True,
         name=f"monitor-{name}",
     )
@@ -461,7 +460,7 @@ def worker_process(
                 if term and not term.trade_allowed:
                     logging.warning(f"Algo Trading TẮT khi nhận tín hiệu → đang bật lại...")
                     for _ in range(5):
-                        enable_algo_trading_by_path(terminal_path)
+                        enable_algo_trading_by_path(terminal_path, lock=at_lock)
                         time.sleep(2)
                         if mt5.terminal_info().trade_allowed:
                             logging.info("✅ Algo Trading đã bật")
