@@ -22,17 +22,24 @@ SHUTDOWN_SIGNAL = "__SHUTDOWN__"
 logger = logging.getLogger(__name__)
 
 
-def _enable_algo_trading(terminal_path: str, at_lock=None):
+def _enable_algo_trading(terminal_path: str, at_lock=None) -> bool:
     """
-    Acquire cross-process lock, kiểm tra trade_allowed TRONG lock trước khi gửi Ctrl+E.
-    Tránh toggle OFF do nhiều worker gửi Ctrl+E đồng thời.
+    Gửi Ctrl+E một lần (có lock để serialize), rồi chờ NGOÀI lock tối đa 6s.
+    Trả về True nếu trade_allowed bật thành công.
+    Chờ ngoài lock tránh: gửi Ctrl+E lần 2 khi MT5 API chưa cập nhật → toggle OFF.
     """
     lock_ctx = at_lock if at_lock is not None else contextlib.nullcontext()
     with lock_ctx:
         term = mt5.terminal_info()
         if term and term.trade_allowed:
-            return  # worker khác đã bật rồi, bỏ qua
+            return True  # đã bật rồi
         enable_algo_trading_by_path(terminal_path)
+    # Chờ ngoài lock — cho MT5 API cập nhật trạng thái
+    for _ in range(6):
+        time.sleep(1)
+        if mt5.terminal_info().trade_allowed:
+            return True
+    return False
 
 
 def _resolve_symbol(raw: str) -> str:
@@ -400,16 +407,13 @@ def worker_process(
     term = mt5.terminal_info()
     if term and not term.trade_allowed:
         logging.warning("⚠️  Algo Trading TẮT — đang bật...")
-        for attempt in range(10):
-            _enable_algo_trading(terminal_path, at_lock)
-            time.sleep(2)
-            term = mt5.terminal_info()
-            if term and term.trade_allowed:
+        for attempt in range(3):
+            if _enable_algo_trading(terminal_path, at_lock):
                 logging.info("✅ Algo Trading đã BẬT")
                 break
-            logging.warning(f"Retry {attempt + 1}/10 bật Algo Trading...")
+            logging.warning(f"Retry {attempt + 1}/3 bật Algo Trading...")
         else:
-            logging.error("❌ Không bật được Algo Trading sau 10 lần thử")
+            logging.error("❌ Không bật được Algo Trading sau 3 lần thử")
 
     # Thêm các symbol hay dùng vào Market Watch (thử các hậu tố nếu cần)
     symbols = os.environ.get("MT5_SYMBOLS", "XAUUSD,EURUSD,GBPUSD").split(",")
@@ -471,13 +475,8 @@ def worker_process(
                 term = mt5.terminal_info()
                 if term and not term.trade_allowed:
                     logging.warning(f"Algo Trading TẮT khi nhận tín hiệu → đang bật...")
-                    for _ in range(5):
-                        _enable_algo_trading(terminal_path, at_lock)
-                        time.sleep(2)
-                        if mt5.terminal_info().trade_allowed:
-                            logging.info("✅ Algo Trading đã bật")
-                            break
-                    else:
+                    ok = any(_enable_algo_trading(terminal_path, at_lock) for _ in range(3))
+                    if not ok:
                         raise RuntimeError("Không bật được Algo Trading, bỏ qua lệnh")
 
                 if signal.action == "CLOSE":
