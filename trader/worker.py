@@ -438,7 +438,9 @@ def worker_process(
                 signal: TradeSignal
                 signal_mode: str
                 source: str
-                if isinstance(item, tuple) and len(item) == 3:
+                if isinstance(item, tuple) and len(item) == 4:
+                    signal, signal_mode, source, lot = item
+                elif isinstance(item, tuple) and len(item) == 3:
                     signal, signal_mode, source = item
                 elif isinstance(item, tuple):
                     signal, signal_mode = item
