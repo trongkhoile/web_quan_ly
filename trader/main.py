@@ -92,11 +92,18 @@ inactive_ids:    set[str]           = set()     # isActive=False (không nhận 
 def _algo_trading_daemon():
     """
     Thread duy nhất nhận yêu cầu bật Algo Trading từ các worker process.
-    Xử lý tuần tự → không bao giờ tranh nhau keyboard.
+    Xử lý tuần tự + cooldown 10s/terminal → không toggle OFF do Ctrl+E kép.
     """
+    last_sent: dict[str, float] = {}
+    COOLDOWN = 10.0
+
     while True:
         try:
             terminal_path = mp_at_queue.get(timeout=1)
+            now = time.time()
+            if now - last_sent.get(terminal_path, 0) < COOLDOWN:
+                continue  # bỏ qua, vừa gửi rồi
+            last_sent[terminal_path] = now
             enable_algo_trading_by_path(terminal_path)
         except Exception:
             pass
