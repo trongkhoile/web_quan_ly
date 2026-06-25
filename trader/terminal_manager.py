@@ -171,6 +171,26 @@ def allocate_terminal(base_exe: str, login: int = 0, server: str = "") -> str:
         return create_terminal(base_exe, idx, login=login, server=server)
 
 
+def kill_orphan_terminals(known_paths: list[str]):
+    """Kill mọi terminal64.exe đang chạy mà KHÔNG có trong danh sách known_paths."""
+    import psutil
+    known = {os.path.normcase(os.path.abspath(p)) for p in known_paths if p}
+    killed = 0
+    for proc in psutil.process_iter(["exe", "pid", "name"]):
+        try:
+            exe = proc.info.get("exe") or ""
+            if os.path.basename(exe).lower() != "terminal64.exe":
+                continue
+            if os.path.normcase(os.path.abspath(exe)) not in known:
+                logger.info(f"Kill terminal không có trong danh sách: PID={proc.pid} {exe}")
+                proc.kill()
+                killed += 1
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+    if killed:
+        logger.info(f"Đã dừng {killed} terminal không thuộc tài khoản nào")
+
+
 def is_terminal_running(terminal_path: str) -> bool:
     import psutil
     norm = os.path.normcase(terminal_path)

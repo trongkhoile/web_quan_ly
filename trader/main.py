@@ -25,6 +25,7 @@ from terminal_manager import (
     launch_terminal,
     is_terminal_running,
     kill_terminal,
+    kill_orphan_terminals,
     _update_common_ini,
 )
 from worker import SHUTDOWN_SIGNAL, worker_process  # noqa: F401
@@ -198,7 +199,13 @@ async def load_existing_accounts():
     accounts = get_active_accounts()
     if not accounts:
         logger.info("Chưa có tài khoản. Chờ người dùng đăng ký qua web...")
+        # Vẫn kill terminal孤 nếu có
+        kill_orphan_terminals([])
         return
+
+    # Kill terminal không thuộc tài khoản nào trước khi provision
+    known_paths = [acc[5] for acc in accounts if acc[5]]
+    kill_orphan_terminals(known_paths)
 
     # Đánh dấu ngay để watch_new_accounts không provision trùng
     for acc in accounts:
