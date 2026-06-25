@@ -14,7 +14,6 @@ import time
 import logging
 import MetaTrader5 as mt5
 from signal_parser import TradeSignal
-from terminal_manager import enable_algo_trading_by_path
 
 SHUTDOWN_SIGNAL = "__SHUTDOWN__"
 
@@ -212,12 +211,12 @@ def _monitor_positions(
     result_queue: mp.Queue,
     stop_event: threading.Event,
     terminal_path: str = "",
-    at_lock=None,
+    at_queue: mp.Queue = None,
 ):
     """
     Thread riêng: theo dõi positions mở mỗi 3 giây.
     Khi position biến mất (đóng bởi TP/SL/tay) → lấy deal từ history và push ngay.
-    Đồng thời kiểm tra Algo Trading mỗi 30 giây, tự bật lại nếu bị tắt.
+    Đồng thời kiểm tra Algo Trading mỗi 5 phút, tự bật lại nếu bị tắt.
     """
     open_positions: dict[int, dict] = {}  # ticket → thông tin lúc mở
     _algo_check_counter = 0
@@ -231,7 +230,8 @@ def _monitor_positions(
                 term = mt5.terminal_info()
                 if term and not term.trade_allowed and terminal_path:
                     logging.warning(f"[{name}] Algo Trading TẮT → đang bật lại...")
-                    enable_algo_trading_by_path(terminal_path, lock=at_lock)
+                    if at_queue is not None:
+                        at_queue.put(terminal_path)
 
             current = mt5.positions_get() or []
             current_tickets = {pos.ticket for pos in current}
@@ -330,7 +330,7 @@ def worker_process(
     terminal_path: str,
     signal_queue: mp.Queue,
     result_queue: mp.Queue,
-    at_lock: mp.Lock = None,
+    at_queue: mp.Queue = None,
     lot: float = 0.01,
 ):
     """
@@ -383,13 +383,13 @@ def worker_process(
         return
 
     # Kiểm tra Algo Trading — MT5 reset về OFF khi terminal kết nối broker lần đầu.
-    # Bật từ đây (sau khi kết nối) để tránh bị reset.
+    # Yêu cầu main process bật qua hàng đợi để tránh tranh nhau keyboard.
     term = mt5.terminal_info()
     if term and not term.trade_allowed:
-        logging.warning("⚠️  Algo Trading TẮT — đang bật từ worker...")
-        # Dùng cross-process lock để chỉ 1 worker gửi Ctrl+E tại 1 thời điểm
+        logging.warning("⚠️  Algo Trading TẮT — yêu cầu bật qua hàng đợi...")
         for attempt in range(10):
-            enable_algo_trading_by_path(terminal_path, lock=at_lock)
+            if at_queue is not None:
+                at_queue.put(terminal_path)
             time.sleep(2)
             term = mt5.terminal_info()
             if term and term.trade_allowed:
@@ -418,7 +418,7 @@ def worker_process(
     stop_event = threading.Event()
     monitor_thread = threading.Thread(
         target=_monitor_positions,
-        args=(account_id, name, result_queue, stop_event, terminal_path, at_lock),
+        args=(account_id, name, result_queue, stop_event, terminal_path, at_queue),
         daemon=True,
         name=f"monitor-{name}",
     )
@@ -458,9 +458,10 @@ def worker_process(
                 # Đảm bảo Algo Trading bật trước khi đặt lệnh
                 term = mt5.terminal_info()
                 if term and not term.trade_allowed:
-                    logging.warning(f"Algo Trading TẮT khi nhận tín hiệu → đang bật lại...")
+                    logging.warning(f"Algo Trading TẮT khi nhận tín hiệu → yêu cầu bật...")
                     for _ in range(5):
-                        enable_algo_trading_by_path(terminal_path, lock=at_lock)
+                        if at_queue is not None:
+                            at_queue.put(terminal_path)
                         time.sleep(2)
                         if mt5.terminal_info().trade_allowed:
                             logging.info("✅ Algo Trading đã bật")

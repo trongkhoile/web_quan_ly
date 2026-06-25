@@ -413,10 +413,10 @@ def _enable_algo_trading(app, pid: int, terminal_path: str = ""):
         logger.warning(f"PID={pid}: Không bật được Algo Trading: {e}")
 
 
-def enable_algo_trading_by_path(terminal_path: str, lock=None) -> bool:
+def enable_algo_trading_by_path(terminal_path: str) -> bool:
     """
     Gửi Ctrl+E đến MT5 terminal xác định bằng đường dẫn exe.
-    lock: multiprocessing.Lock để serialize giữa các worker process.
+    Chỉ nên gọi từ 1 thread duy nhất (algo_trading_daemon trong main.py).
     """
     try:
         import psutil
@@ -453,39 +453,36 @@ def enable_algo_trading_by_path(terminal_path: str, lock=None) -> bool:
         found.sort(key=lambda x: len(x[1]), reverse=True)
         main_hwnd = found[0][0]
 
-        import contextlib
-        lock_ctx = lock if lock is not None else contextlib.nullcontext()
-        with lock_ctx:
-            win32gui.ShowWindow(main_hwnd, 9)  # SW_RESTORE
-            time.sleep(0.2)
+        win32gui.ShowWindow(main_hwnd, 9)  # SW_RESTORE
+        time.sleep(0.2)
 
-            fg_hwnd = win32gui.GetForegroundWindow()
-            fg_tid  = win32process.GetWindowThreadProcessId(fg_hwnd)[0]
-            mt5_tid = win32process.GetWindowThreadProcessId(main_hwnd)[0]
-            attached = False
-            if fg_tid != mt5_tid:
-                try:
-                    win32process.AttachThreadInput(fg_tid, mt5_tid, True)
-                    attached = True
-                except Exception:
-                    pass
+        fg_hwnd = win32gui.GetForegroundWindow()
+        fg_tid  = win32process.GetWindowThreadProcessId(fg_hwnd)[0]
+        mt5_tid = win32process.GetWindowThreadProcessId(main_hwnd)[0]
+        attached = False
+        if fg_tid != mt5_tid:
             try:
-                win32gui.SetForegroundWindow(main_hwnd)
+                win32process.AttachThreadInput(fg_tid, mt5_tid, True)
+                attached = True
             except Exception:
                 pass
-            if attached:
-                try:
-                    win32process.AttachThreadInput(fg_tid, mt5_tid, False)
-                except Exception:
-                    pass
-            time.sleep(0.4)
+        try:
+            win32gui.SetForegroundWindow(main_hwnd)
+        except Exception:
+            pass
+        if attached:
+            try:
+                win32process.AttachThreadInput(fg_tid, mt5_tid, False)
+            except Exception:
+                pass
+        time.sleep(0.4)
 
-            win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
-            win32api.keybd_event(ord('E'), 0, 0, 0)
-            time.sleep(0.1)
-            win32api.keybd_event(ord('E'), 0, win32con.KEYEVENTF_KEYUP, 0)
-            win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
-            time.sleep(0.4)
+        win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+        win32api.keybd_event(ord('E'), 0, 0, 0)
+        time.sleep(0.1)
+        win32api.keybd_event(ord('E'), 0, win32con.KEYEVENTF_KEYUP, 0)
+        win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
+        time.sleep(0.5)
 
         logger.info(f"Ctrl+E → '{found[0][1][:45]}'")
         return True
