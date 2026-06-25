@@ -413,8 +413,8 @@ def worker_process(
 
     # Chờ broker kết nối và áp dụng cấu hình (thường reset Algo Trading về OFF ở ~33s).
     # Check quá sớm sẽ thấy True nhưng sau đó broker lật về False.
-    logging.info("Chờ 15s để broker ổn định trước khi kiểm tra Algo Trading...")
-    time.sleep(15)
+    logging.info("Chờ 8s để broker ổn định trước khi kiểm tra Algo Trading...")
+    time.sleep(8)
 
     # Kiểm tra Algo Trading — broker reset về OFF sau khi kết nối server.
     term = mt5.terminal_info()
