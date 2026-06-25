@@ -35,10 +35,17 @@ def _enable_algo_trading(terminal_path: str, at_lock=None) -> bool:
             return True  # đã bật rồi
         enable_algo_trading_by_path(terminal_path)
     # Chờ ngoài lock — cho MT5 API cập nhật trạng thái (tối đa 15s)
-    for _ in range(15):
+    for i in range(15):
         time.sleep(1)
-        if mt5.terminal_info().trade_allowed:
+        t = mt5.terminal_info()
+        if t and t.trade_allowed:
             return True
+        if i % 5 == 4:
+            acc = mt5.account_info()
+            logging.info(
+                f"Đang chờ Algo Trading: terminal.trade_allowed={t.trade_allowed if t else '?'} "
+                f"account.trade_expert={getattr(acc, 'trade_expert', '?')}"
+            )
     return False
 
 
@@ -406,7 +413,12 @@ def worker_process(
     # Kiểm tra Algo Trading — MT5 reset về OFF khi terminal kết nối broker lần đầu.
     term = mt5.terminal_info()
     if term and not term.trade_allowed:
-        logging.warning("⚠️  Algo Trading TẮT — đang bật...")
+        acc = mt5.account_info()
+        logging.warning(
+            f"⚠️  Algo Trading TẮT | terminal.trade_allowed={term.trade_allowed} "
+            f"| account.trade_allowed={getattr(acc, 'trade_allowed', '?')} "
+            f"| account.trade_expert={getattr(acc, 'trade_expert', '?')}"
+        )
         for attempt in range(3):
             if _enable_algo_trading(terminal_path, at_lock):
                 logging.info("✅ Algo Trading đã BẬT")
