@@ -241,7 +241,7 @@ async def watch_new_accounts():
 
 async def watch_accounts_changes():
     while True:
-        await asyncio.sleep(30)
+        await asyncio.sleep(5)
         try:
             all_accounts = get_all_account_ids()  # {id: {isActive, signalMode}}
             all_ids      = set(all_accounts.keys())
