@@ -466,25 +466,6 @@ def _enable_algo_trading(app, pid: int, terminal_path: str = ""):
         logger.warning(f"PID={pid}: Không bật được Algo Trading: {e}")
 
 
-def _post_ctrl_e(main_hwnd: int) -> bool:
-    """
-    Gửi Ctrl+E trực tiếp vào MT5 window qua WM_KEYDOWN (không cần foreground focus).
-    An toàn hơn WM_COMMAND vì Ctrl+E chỉ toggle AutoTrading, không ảnh hưởng gì khác.
-    """
-    import win32api, win32con
-    try:
-        VK_CONTROL = win32con.VK_CONTROL  # 0x11
-        VK_E       = 0x45
-        # lParam: repeat=1, scan code, flags
-        win32api.PostMessage(main_hwnd, win32con.WM_KEYDOWN, VK_CONTROL, 0x001D0001)
-        win32api.PostMessage(main_hwnd, win32con.WM_KEYDOWN, VK_E,       0x00120001)
-        win32api.PostMessage(main_hwnd, win32con.WM_KEYUP,   VK_E,       0xC0120001)
-        win32api.PostMessage(main_hwnd, win32con.WM_KEYUP,   VK_CONTROL, 0xC01D0001)
-        logger.info(f"PostMessage Ctrl+E → hwnd={main_hwnd}")
-        return True
-    except Exception as e:
-        logger.warning(f"PostMessage Ctrl+E thất bại: {e}")
-        return False
 
 
 def enable_algo_trading_by_path(terminal_path: str) -> bool:
@@ -612,8 +593,8 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
                 logger.info(f"Ctrl+E → '{found[0][1][:45]}'")
                 return True
             else:
-                # ── Phương án 2: PostMessage Ctrl+E (RDP disconnect / actual=0) ──
-                return _post_ctrl_e(main_hwnd)
+                # actual=0: RDP disconnect, không lấy được focus → retry sau
+                return False
         finally:
             user32.SystemParametersInfoW(SPI_SETFOREGROUNDLOCKTIMEOUT, 0,
                                          orig_timeout.value, SPIF_SENDCHANGE)
