@@ -5,7 +5,7 @@ from typing import Literal, Optional
 
 @dataclass
 class TradeSignal:
-    action: Literal["BUY", "SELL", "CLOSE", "CLOSE_ALL"]
+    action: Literal["BUY", "SELL", "CLOSE", "CLOSE_ALL", "CLOSE_SIMPLE", "CLOSE_DCA"]
     symbol: str
     entry: Optional[float] = None
     sl: Optional[float] = None
@@ -17,7 +17,8 @@ class TradeSignal:
 # Từ không phải symbol dù toàn chữ hoa
 _NOT_SYMBOL = {"BUY", "SELL", "CLOSE", "PRO", "VIP", "SIGNAL", "TRADE", "ALERT",
                "ENTRY", "STOP", "TAKE", "PROFIT", "LOSS", "LOT", "TP", "SL",
-               "DCA", "STANDARD", "PREMIUM", "MINI", "MICRO", "ORDER", "LIMIT"}
+               "DCA", "STANDARD", "PREMIUM", "MINI", "MICRO", "ORDER", "LIMIT",
+               "WIN", "PIPS", "GOING"}
 
 
 def _strip_emojis(text: str) -> str:
@@ -44,6 +45,9 @@ def parse_signal(text: str) -> Optional[TradeSignal]:
         🎯 TP: 4182.68
 
         CLOSE XAUUSD
+
+        ✅ WIN SELL VIP   → đóng tất cả lệnh đơn (CLOSE_SIMPLE)
+        ❌ LOSS BUY PRO   → đóng tất cả lệnh DCA (CLOSE_DCA)
     """
     clean = _strip_emojis(text)
     lines = [l.strip() for l in clean.splitlines() if l.strip()]
@@ -51,6 +55,14 @@ def parse_signal(text: str) -> Optional[TradeSignal]:
         return None
 
     first = lines[0].upper()
+
+    # WIN/LOSS VIP → đóng tất cả lệnh đơn (comment="lenhdon")
+    if re.search(r"\b(WIN|LOSS)\b", first) and re.search(r"\bVIP\b", first):
+        return TradeSignal(action="CLOSE_SIMPLE", symbol="")
+
+    # WIN/LOSS PRO → đóng tất cả lệnh DCA (comment="dca")
+    if re.search(r"\b(WIN|LOSS)\b", first) and re.search(r"\bPRO\b", first):
+        return TradeSignal(action="CLOSE_DCA", symbol="")
 
     # CLOSE XAUUSD
     m = re.search(r"\bCLOSE\s+([A-Z][A-Z0-9]{1,9})\b", first)

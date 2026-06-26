@@ -344,6 +344,25 @@ def _close_all_positions() -> str:
     return f"Đóng {closed}/{len(bot_positions)} lệnh, hủy {cancelled} pending"
 
 
+def _close_positions_by_comment(comment: str) -> str:
+    """Đóng lệnh mở + hủy pending có comment khớp (magic=123456)."""
+    positions = mt5.positions_get() or []
+    targets = [p for p in positions if p.magic == 123456 and p.comment.lower() == comment.lower()]
+
+    closed = 0
+    for pos in targets:
+        if _close_single_position(pos):
+            closed += 1
+
+    pending = mt5.orders_get() or []
+    cancelled = 0
+    for order in [o for o in pending if o.magic == 123456 and o.comment.lower() == comment.lower()]:
+        if _cancel_pending(order.ticket):
+            cancelled += 1
+
+    return f"Đóng {closed}/{len(targets)} lệnh '{comment}', hủy {cancelled} pending"
+
+
 def _reconnect(terminal_path: str, login: int, password: str, server: str) -> bool:
     mt5.shutdown()
     time.sleep(2)
@@ -498,7 +517,11 @@ def worker_process(
                     if not ok:
                         raise RuntimeError("Không bật được Algo Trading, bỏ qua lệnh")
 
-                if signal.action == "CLOSE":
+                if signal.action == "CLOSE_SIMPLE":
+                    msg = _close_positions_by_comment("lenhdon")
+                elif signal.action == "CLOSE_DCA":
+                    msg = _close_positions_by_comment("dca")
+                elif signal.action == "CLOSE":
                     msg = _close_positions(signal.symbol)
                 else:
                     has_dca = signal.dca is not None
