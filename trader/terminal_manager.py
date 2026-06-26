@@ -172,23 +172,32 @@ def allocate_terminal(base_exe: str, login: int = 0, server: str = "") -> str:
 
 
 def kill_orphan_terminals(known_paths: list[str]):
-    """Kill mọi terminal64.exe đang chạy mà KHÔNG có trong danh sách known_paths."""
+    """Kill terminal64.exe đang chạy mà không nằm trong thư mục mt5_terminals/.
+    Tài khoản inactive vẫn có terminal trong mt5_terminals/ nên không bị kill.
+    """
     import psutil
-    known = {os.path.normcase(os.path.abspath(p)) for p in known_paths if p}
+    # Tất cả terminal trong thư mục quản lý (cả active lẫn inactive) đều là "đã biết"
+    managed_dir = os.path.normcase(os.path.abspath(TERMINALS_DIR))
+    # Danh sách bổ sung từ caller (phòng trường hợp path nằm ngoài managed_dir)
+    extra_known = {os.path.normcase(os.path.abspath(p)) for p in known_paths if p}
+
     killed = 0
     for proc in psutil.process_iter(["exe", "pid", "name"]):
         try:
             exe = proc.info.get("exe") or ""
             if os.path.basename(exe).lower() != "terminal64.exe":
                 continue
-            if os.path.normcase(os.path.abspath(exe)) not in known:
-                logger.info(f"Kill terminal không có trong danh sách: PID={proc.pid} {exe}")
-                proc.kill()
-                killed += 1
+            exe_norm = os.path.normcase(os.path.abspath(exe))
+            # Giữ nếu nằm trong thư mục mt5_terminals/ hoặc trong extra_known
+            if exe_norm.startswith(managed_dir) or exe_norm in extra_known:
+                continue
+            logger.info(f"Kill terminal ngoài thư mục quản lý: PID={proc.pid} {exe}")
+            proc.kill()
+            killed += 1
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             pass
     if killed:
-        logger.info(f"Đã dừng {killed} terminal không thuộc tài khoản nào")
+        logger.info(f"Đã dừng {killed} terminal không thuộc thư mục quản lý")
 
 
 def is_terminal_running(terminal_path: str) -> bool:
