@@ -593,8 +593,41 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
                 logger.info(f"Ctrl+E → '{found[0][1][:45]}'")
                 return True
             else:
-                # actual=0: RDP disconnect, không lấy được focus → retry sau
-                return False
+                # ── Phương án 2: WM_COMMAND qua menu (không cần focus) ──
+                at_keywords = {"autotrad", "autotrading", "auto trad", "algo trad",
+                               "allow auto", "expert advis"}
+                cmd_id = None
+                try:
+                    hmenu = win32gui.GetMenu(main_hwnd)
+                    if hmenu:
+                        for i in range(win32gui.GetMenuItemCount(hmenu)):
+                            sub = win32gui.GetSubMenu(hmenu, i)
+                            if not sub:
+                                continue
+                            for j in range(win32gui.GetMenuItemCount(sub)):
+                                try:
+                                    mid = win32gui.GetMenuItemID(sub, j)
+                                    if mid <= 0:
+                                        continue
+                                    text = win32gui.GetMenuString(sub, j, win32con.MF_BYPOSITION)
+                                    if text and any(kw in text.lower() for kw in at_keywords):
+                                        cmd_id = mid
+                                        break
+                                except Exception:
+                                    pass
+                            if cmd_id:
+                                break
+                except Exception:
+                    pass
+
+                if cmd_id:
+                    win32gui.PostMessage(main_hwnd, win32con.WM_COMMAND, cmd_id, 0)
+                    logger.info(f"WM_COMMAND(id={cmd_id}) → '{found[0][1][:45]}'")
+                    time.sleep(0.5)
+                    return True
+                else:
+                    logger.warning("Không tìm thấy menu item AutoTrading → retry sau")
+                    return False
         finally:
             user32.SystemParametersInfoW(SPI_SETFOREGROUNDLOCKTIMEOUT, 0,
                                          orig_timeout.value, SPIF_SENDCHANGE)
