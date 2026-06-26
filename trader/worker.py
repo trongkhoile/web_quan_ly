@@ -509,13 +509,15 @@ def worker_process(
                     if not _reconnect(terminal_path, login, password, server):
                         raise RuntimeError(f"Kết nối lại thất bại: {mt5.last_error()}")
 
-                # Đảm bảo Algo Trading bật trước khi đặt lệnh
-                term = mt5.terminal_info()
-                if term and not term.trade_allowed:
-                    logging.warning(f"Algo Trading TẮT khi nhận tín hiệu → đang bật...")
-                    ok = any(_enable_algo_trading(terminal_path, at_lock) for _ in range(3))
-                    if not ok:
-                        raise RuntimeError("Không bật được Algo Trading, bỏ qua lệnh")
+                # Đóng lệnh không cần Algo Trading bật — chỉ check khi mở lệnh mới
+                _is_close = signal.action in ("CLOSE", "CLOSE_SIMPLE", "CLOSE_DCA", "CLOSE_ALL")
+                if not _is_close:
+                    term = mt5.terminal_info()
+                    if term and not term.trade_allowed:
+                        logging.warning(f"Algo Trading TẮT khi nhận tín hiệu → đang bật...")
+                        ok = any(_enable_algo_trading(terminal_path, at_lock) for _ in range(3))
+                        if not ok:
+                            raise RuntimeError("Không bật được Algo Trading, bỏ qua lệnh")
 
                 if signal.action == "CLOSE_SIMPLE":
                     msg = _close_positions_by_comment("lenhdon")
