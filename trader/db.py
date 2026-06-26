@@ -38,6 +38,12 @@ def get_all_account_ids() -> dict[str, dict]:
             for a in _api("GET", "?type=all")}
 
 
+def get_all_terminal_paths() -> list[str]:
+    """Trả về danh sách terminalPath của TẤT CẢ account (kể cả inactive)."""
+    return [a["terminalPath"] for a in _api("GET", "?type=all")
+            if a.get("terminalPath")]
+
+
 def get_active_accounts() -> List[Tuple[str, str, int, str, str, Optional[str]]]:
     return [t for a in _api("GET", "?type=active") if (t := _to_tuple(a)) is not None]
 

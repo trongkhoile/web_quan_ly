@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, ContextTypes, MessageHandler, filters
 
-from db import get_active_accounts, get_pending_accounts, get_all_account_ids, update_account_status, log_trade, set_terminal_path, push_trade_history
+from db import get_active_accounts, get_pending_accounts, get_all_account_ids, get_all_terminal_paths, update_account_status, log_trade, set_terminal_path, push_trade_history
 from signal_parser import parse_signal, TradeSignal
 from terminal_manager import (
     allocate_terminal,
@@ -199,13 +199,11 @@ async def load_existing_accounts():
     accounts = get_active_accounts()
     if not accounts:
         logger.info("Chưa có tài khoản. Chờ người dùng đăng ký qua web...")
-        # Vẫn kill terminal孤 nếu có
-        kill_orphan_terminals([])
+        kill_orphan_terminals(get_all_terminal_paths())
         return
 
-    # Kill terminal không thuộc tài khoản nào trước khi provision
-    known_paths = [acc[5] for acc in accounts if acc[5]]
-    kill_orphan_terminals(known_paths)
+    # Kill terminal không thuộc tài khoản nào (kể cả inactive) trước khi provision
+    kill_orphan_terminals(get_all_terminal_paths())
 
     # Đánh dấu ngay để watch_new_accounts không provision trùng
     for acc in accounts:
