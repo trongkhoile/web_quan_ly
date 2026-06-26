@@ -226,10 +226,10 @@ def kill_orphan_terminals(known_paths: list[str]):
 
 def is_terminal_running(terminal_path: str) -> bool:
     import psutil
-    norm = os.path.normcase(terminal_path)
+    norm = os.path.normcase(os.path.abspath(terminal_path))
     for proc in psutil.process_iter(["exe"]):
         try:
-            if proc.info["exe"] and os.path.normcase(proc.info["exe"]) == norm:
+            if proc.info["exe"] and os.path.normcase(os.path.abspath(proc.info["exe"])) == norm:
                 return True
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             pass
