@@ -397,21 +397,31 @@ async def run():
     allowed_chats = [GROUP_ID_DCA] + ([GROUP_ID_SIMPLE] if GROUP_ID_SIMPLE else [])
     app.add_handler(MessageHandler(filters.TEXT & filters.Chat(allowed_chats), handle_message))
 
-    async with app:
-        await app.start()
-        await app.updater.start_polling(
-            allowed_updates=["message", "channel_post", "edited_message"],
-            drop_pending_updates=True,
-        )
-        logger.info(f"Bot đang chạy | DCA group: {GROUP_ID_DCA} | Simple group: {GROUP_ID_SIMPLE}")
-        try:
-            await asyncio.Event().wait()
-        except (asyncio.CancelledError, KeyboardInterrupt):
-            pass
-        finally:
-            await app.updater.stop()
-            await app.stop()
-            _release_lock()
+    async def run_telegram():
+        while True:
+            try:
+                async with app:
+                    await app.start()
+                    await app.updater.start_polling(
+                        allowed_updates=["message", "channel_post", "edited_message"],
+                        drop_pending_updates=True,
+                    )
+                    logger.info(f"Bot đang chạy | DCA group: {GROUP_ID_DCA} | Simple group: {GROUP_ID_SIMPLE}")
+                    await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.warning(f"Telegram lỗi kết nối: {e} — thử lại sau 60s...")
+                await asyncio.sleep(60)
+
+    asyncio.create_task(run_telegram())
+
+    try:
+        await asyncio.Event().wait()
+    except (asyncio.CancelledError, KeyboardInterrupt):
+        pass
+    finally:
+        _release_lock()
 
 
 def main():
