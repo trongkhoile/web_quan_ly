@@ -34,7 +34,9 @@ def _enable_algo_trading(terminal_path: str, at_lock=None) -> bool:
         term = mt5.terminal_info()
         if term and term.trade_allowed:
             return True  # đã bật rồi
-        sent = enable_algo_trading_by_path(terminal_path)
+        # Dùng path từ terminal_info() (phản ánh đúng sau khi MT5 tự update/restart)
+        actual_path = os.path.join(term.path, "terminal64.exe") if term and term.path else terminal_path
+        sent = enable_algo_trading_by_path(actual_path)
 
     if not sent:
         # Focus chưa đạt — chờ 5s rồi báo caller retry

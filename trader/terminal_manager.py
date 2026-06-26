@@ -547,13 +547,19 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
         import win32gui, win32con, win32process, win32api
 
         norm = os.path.normcase(os.path.abspath(terminal_path))
-        target_pids = set()
-        for proc in psutil.process_iter(["exe", "pid"]):
-            try:
-                if proc.info["exe"] and os.path.normcase(proc.info["exe"]) == norm:
-                    target_pids.add(proc.pid)
-            except Exception:
-                pass
+        target_pids: set[int] = set()
+        # Retry vài lần: MT5 tự update/restart có thể khiến process tạm vắng mặt
+        for _retry in range(4):
+            for proc in psutil.process_iter(["exe", "pid"]):
+                try:
+                    if proc.info["exe"] and os.path.normcase(proc.info["exe"]) == norm:
+                        target_pids.add(proc.pid)
+                except Exception:
+                    pass
+            if target_pids:
+                break
+            if _retry < 3:
+                time.sleep(2)
 
         if not target_pids:
             logger.warning(f"enable_algo_trading_by_path: không tìm thấy process {terminal_path}")
