@@ -567,29 +567,37 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
             win32gui.ShowWindow(main_hwnd, 9)   # SW_RESTORE
             time.sleep(0.2)
 
-            # Attach Python's thread to the foreground thread để có quyền SetForegroundWindow
+            # Cho phép mọi process set foreground window
+            import ctypes as _ct2
+            _ct2.windll.user32.AllowSetForegroundWindow(_ct2.c_uint(0xFFFFFFFF))
+
             python_tid = win32api.GetCurrentThreadId()
-            fg_hwnd = win32gui.GetForegroundWindow()
-            fg_tid  = win32process.GetWindowThreadProcessId(fg_hwnd)[0] if fg_hwnd else 0
+            mt5_tid    = win32process.GetWindowThreadProcessId(main_hwnd)[0]
+            fg_hwnd    = win32gui.GetForegroundWindow()
+            fg_tid     = win32process.GetWindowThreadProcessId(fg_hwnd)[0] if fg_hwnd else 0
+
+            # Attach tới foreground thread (nếu có), không thì attach tới MT5 thread
+            attach_to = fg_tid if (fg_tid and fg_tid != python_tid) else (mt5_tid if mt5_tid != python_tid else 0)
             attached = False
-            if fg_tid and fg_tid != python_tid:
+            if attach_to:
                 try:
-                    win32process.AttachThreadInput(python_tid, fg_tid, True)
+                    win32process.AttachThreadInput(python_tid, attach_to, True)
                     attached = True
                 except Exception:
                     pass
 
             try:
                 user32.BringWindowToTop(main_hwnd)
+                _ct2.windll.user32.SwitchToThisWindow(main_hwnd, True)
                 win32gui.SetForegroundWindow(main_hwnd)
             except Exception:
                 pass
-            time.sleep(0.05)
+            time.sleep(0.15)
             actual_fg = win32gui.GetForegroundWindow()
 
             if attached:
                 try:
-                    win32process.AttachThreadInput(python_tid, fg_tid, False)
+                    win32process.AttachThreadInput(python_tid, attach_to, False)
                 except Exception:
                     pass
 
