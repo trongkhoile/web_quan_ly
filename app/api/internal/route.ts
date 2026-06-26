@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
   if (type === "all") {
     const accounts = await prisma.mt5Account.findMany({
-      select: { id: true, isActive: true, signalMode: true, lot: true },
+      select: { id: true, name: true, mt5Login: true, mt5Password: true, mt5Server: true, terminalPath: true, isActive: true, signalMode: true, lot: true },
     });
     return NextResponse.json(accounts);
   }
