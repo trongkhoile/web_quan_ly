@@ -433,10 +433,80 @@ def _enable_algo_trading(app, pid: int, terminal_path: str = ""):
         logger.warning(f"PID={pid}: Không bật được Algo Trading: {e}")
 
 
+def _wm_command_algo_trading(main_hwnd: int, mt5_pid: int) -> bool:
+    """
+    Fallback khi không có focus (RDP disconnect / actual=0).
+    Đọc toolbar buttons qua VirtualAllocEx, gửi WM_COMMAND trực tiếp vào MT5.
+    WM_COMMAND đi thẳng vào message queue — không cần foreground window.
+    """
+    import ctypes, struct, win32gui, win32api
+
+    WM_COMMAND     = 0x0111
+    TB_BUTTONCOUNT = 0x0418
+    TB_GETBUTTON   = 0x0417
+    TBSTYLE_CHECK  = 0x02
+    TBSTATE_CHECKED = 0x01
+    TBSTATE_HIDDEN  = 0x08
+
+    toolbars = []
+    def _find_tb(hwnd, _):
+        try:
+            if win32gui.GetClassName(hwnd) == "ToolbarWindow32":
+                toolbars.append(hwnd)
+        except Exception:
+            pass
+    try:
+        win32gui.EnumChildWindows(main_hwnd, _find_tb, None)
+    except Exception:
+        pass
+
+    if not toolbars:
+        logger.warning("WM_COMMAND fallback: không tìm thấy toolbar")
+        return False
+
+    kernel32 = ctypes.windll.kernel32
+    # PROCESS_VM_OPERATION | PROCESS_VM_READ
+    hProcess = kernel32.OpenProcess(0x0018, False, mt5_pid)
+    if not hProcess:
+        logger.warning(f"WM_COMMAND fallback: OpenProcess thất bại err={ctypes.GetLastError()}")
+        return False
+
+    # TBBUTTON (64-bit): iBitmap(4) idCommand(4) fsState(1) fsStyle(1) pad(6) dwData(8) iString(8)
+    remote = kernel32.VirtualAllocEx(hProcess, 0, 64, 0x1000, 0x04)
+    if not remote:
+        kernel32.CloseHandle(hProcess)
+        return False
+
+    sent = []
+    try:
+        for tb in toolbars:
+            n = win32api.SendMessage(tb, TB_BUTTONCOUNT, 0, 0)
+            for i in range(n):
+                win32api.SendMessage(tb, TB_GETBUTTON, i, remote)
+                buf = (ctypes.c_byte * 64)()
+                kernel32.ReadProcessMemory(hProcess, remote, buf, 64, None)
+                _, cmd, state, style = struct.unpack_from('<iibb', buf)
+                if cmd <= 0 or (state & TBSTATE_HIDDEN):
+                    continue
+                # Nút AutoTrading là CHECK-style và đang ở trạng thái KHÔNG checked
+                if (style & TBSTYLE_CHECK) and not (state & TBSTATE_CHECKED):
+                    win32api.PostMessage(main_hwnd, WM_COMMAND, cmd, 0)
+                    sent.append(cmd)
+                    logger.info(f"WM_COMMAND: btn[{i}] cmd={cmd} style={style:#x} state={state:#x}")
+    finally:
+        kernel32.VirtualFreeEx(hProcess, remote, 0, 0x8000)
+        kernel32.CloseHandle(hProcess)
+
+    if sent:
+        logger.info(f"WM_COMMAND fallback: đã gửi {len(sent)} lệnh {sent}")
+    return len(sent) > 0
+
+
 def enable_algo_trading_by_path(terminal_path: str) -> bool:
     """
-    Gửi Ctrl+E đến MT5 terminal xác định bằng đường dẫn exe.
-    Chỉ nên gọi từ 1 thread duy nhất (algo_trading_daemon trong main.py).
+    Bật Algo Trading cho MT5 terminal.
+    Ưu tiên: Ctrl+E qua keyboard (cần focus).
+    Fallback: WM_COMMAND trực tiếp vào toolbar (hoạt động kể cả khi RDP disconnect).
     """
     try:
         import psutil
@@ -472,12 +542,11 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
 
         found.sort(key=lambda x: len(x[1]), reverse=True)
         main_hwnd = found[0][0]
+        mt5_pid   = list(target_pids)[0]
 
         import ctypes
         user32 = ctypes.windll.user32
 
-        # Tạm tắt foreground lock timeout để SetForegroundWindow hoạt động
-        # từ background process (worker không phải foreground process)
         SPI_GETFOREGROUNDLOCKTIMEOUT = 0x2000
         SPI_SETFOREGROUNDLOCKTIMEOUT = 0x2001
         SPIF_SENDCHANGE = 0x0002
@@ -492,10 +561,10 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
             time.sleep(0.2)
 
             fg_hwnd = win32gui.GetForegroundWindow()
-            fg_tid  = win32process.GetWindowThreadProcessId(fg_hwnd)[0]
+            fg_tid  = win32process.GetWindowThreadProcessId(fg_hwnd)[0] if fg_hwnd else 0
             mt5_tid = win32process.GetWindowThreadProcessId(main_hwnd)[0]
             attached = False
-            if fg_tid != mt5_tid:
+            if fg_tid and fg_tid != mt5_tid:
                 try:
                     win32process.AttachThreadInput(fg_tid, mt5_tid, True)
                     attached = True
@@ -516,24 +585,23 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
 
             logger.info(f"Focus: hwnd={main_hwnd} actual={actual_fg} match={actual_fg == main_hwnd}")
 
-            # Nếu chưa chiếm được focus → KHÔNG gửi Ctrl+E (phím sẽ đi vào window sai).
-            # Caller sẽ retry sau 5s; MT5 window tự nhiên lên foreground ~33s sau khi load xong.
-            if actual_fg != main_hwnd:
-                return False
-
-            time.sleep(0.3)
-            win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
-            win32api.keybd_event(ord('E'), 0, 0, 0)
-            time.sleep(0.1)
-            win32api.keybd_event(ord('E'), 0, win32con.KEYEVENTF_KEYUP, 0)
-            win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
-            time.sleep(0.5)
+            if actual_fg == main_hwnd:
+                # ── Phương án 1: Ctrl+E (focus đạt được) ──
+                time.sleep(0.3)
+                win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+                win32api.keybd_event(ord('E'), 0, 0, 0)
+                time.sleep(0.1)
+                win32api.keybd_event(ord('E'), 0, win32con.KEYEVENTF_KEYUP, 0)
+                win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
+                time.sleep(0.5)
+                logger.info(f"Ctrl+E → '{found[0][1][:45]}'")
+                return True
+            else:
+                # ── Phương án 2: WM_COMMAND (RDP disconnect / actual=0) ──
+                return _wm_command_algo_trading(main_hwnd, mt5_pid)
         finally:
             user32.SystemParametersInfoW(SPI_SETFOREGROUNDLOCKTIMEOUT, 0,
                                          orig_timeout.value, SPIF_SENDCHANGE)
-
-        logger.info(f"Ctrl+E → '{found[0][1][:45]}'")
-        return True
 
     except Exception as e:
         logger.warning(f"enable_algo_trading_by_path lỗi: {e}")
