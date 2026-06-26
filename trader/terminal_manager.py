@@ -468,6 +468,98 @@ def _enable_algo_trading(app, pid: int, terminal_path: str = ""):
 
 
 
+def _click_at_via_toolbar(main_hwnd: int) -> bool:
+    """
+    Tìm nút Allow AutoTrading trong toolbar MT5 qua cross-process memory,
+    lấy command ID rồi gửi WM_COMMAND — không cần focus, hoạt động khi RDP disconnect.
+    """
+    try:
+        import ctypes, struct, win32gui, win32con, win32process
+
+        kernel32 = ctypes.windll.kernel32
+        user32   = ctypes.windll.user32
+
+        TB_GETBUTTONCOUNT = 0x0418
+        TB_GETBUTTON      = 0x0417
+        TBSTYLE_CHECK     = 0x02
+        TBSTATE_ENABLED   = 0x04
+        TBSTATE_CHECKED   = 0x01
+
+        # Command ID của các toggle panel trong View menu (không phải AT)
+        VIEW_PANEL_IDS = {32841, 32843, 32844, 32845, 32846, 32847, 32855,
+                          32900, 32901, 32931, 59393}
+
+        # Tìm toolbar (ToolbarWindow32 hoặc class chứa "oolbar")
+        toolbar_hwnd = None
+        def _find_tb(hwnd, _):
+            nonlocal toolbar_hwnd
+            try:
+                if "oolbar" in win32gui.GetClassName(hwnd):
+                    toolbar_hwnd = hwnd
+                    return False
+            except Exception:
+                pass
+        try:
+            win32gui.EnumChildWindows(main_hwnd, _find_tb, None)
+        except Exception:
+            pass
+
+        if not toolbar_hwnd:
+            logger.warning("_click_at_via_toolbar: không tìm thấy toolbar")
+            return False
+
+        _, mt5_pid = win32process.GetWindowThreadProcessId(toolbar_hwnd)
+        h_proc = kernel32.OpenProcess(0x1F0FFF, False, mt5_pid)  # PROCESS_ALL_ACCESS
+        if not h_proc:
+            logger.warning("_click_at_via_toolbar: OpenProcess thất bại")
+            return False
+
+        # TBBUTTON (64-bit): iBitmap[4] idCommand[4] fsState[1] fsStyle[1] reserved[6] dwData[8] iString[8] = 32 bytes
+        TB_BTN_SIZE = 32
+        remote = kernel32.VirtualAllocEx(h_proc, None, TB_BTN_SIZE, 0x3000, 0x04)
+        if not remote:
+            kernel32.CloseHandle(h_proc)
+            return False
+
+        try:
+            btn_count = user32.SendMessageW(toolbar_hwnd, TB_GETBUTTONCOUNT, 0, 0)
+            at_cmd_id = None
+
+            for i in range(btn_count):
+                kernel32.WriteProcessMemory(h_proc, remote, ctypes.c_char_p(b'\x00' * TB_BTN_SIZE), TB_BTN_SIZE, None)
+                user32.SendMessageW(toolbar_hwnd, TB_GETBUTTON, i, remote)
+                buf = (ctypes.c_char * TB_BTN_SIZE)()
+                kernel32.ReadProcessMemory(h_proc, remote, buf, TB_BTN_SIZE, None)
+                data = bytes(buf)
+                cmd_id   = struct.unpack_from('<i', data, 4)[0]
+                fs_state = data[8]
+                fs_style = data[9]
+
+                is_check   = bool(fs_style & TBSTYLE_CHECK)
+                is_enabled = bool(fs_state & TBSTATE_ENABLED)
+
+                if is_check and is_enabled and cmd_id > 0 and cmd_id not in VIEW_PANEL_IDS:
+                    at_cmd_id = cmd_id
+                    logger.info(f"AT toolbar button: idx={i} cmdId={cmd_id} state={fs_state:#x}")
+                    break
+
+            if at_cmd_id:
+                wparam = (0 << 16) | (at_cmd_id & 0xFFFF)  # HIWORD=BN_CLICKED=0
+                user32.PostMessageW(main_hwnd, win32con.WM_COMMAND, wparam, toolbar_hwnd)
+                logger.info(f"WM_COMMAND(id={at_cmd_id}) → AT toolbar (no-focus)")
+                return True
+            else:
+                logger.warning(f"_click_at_via_toolbar: không tìm thấy AT button (btn_count={btn_count})")
+                return False
+        finally:
+            kernel32.VirtualFreeEx(h_proc, remote, 0, 0x8000)
+            kernel32.CloseHandle(h_proc)
+
+    except Exception as e:
+        logger.warning(f"_click_at_via_toolbar lỗi: {e}")
+        return False
+
+
 def enable_algo_trading_by_path(terminal_path: str) -> bool:
     """
     Bật Algo Trading cho MT5 terminal.
@@ -615,16 +707,8 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
                 logger.info(f"Ctrl+E → '{found[0][1][:45]}'")
                 return True
             else:
-                # ── Phương án 2: PostMessage WM_KEYDOWN Ctrl+E trực tiếp vào window ──
-                # Hoạt động kể cả khi RDP disconnect (không cần focus)
-                logger.info(f"PostMessage Ctrl+E → hwnd={main_hwnd} (no-focus fallback)")
-                win32gui.PostMessage(main_hwnd, win32con.WM_KEYDOWN, win32con.VK_CONTROL, 0x001D0001)
-                win32gui.PostMessage(main_hwnd, win32con.WM_KEYDOWN, ord('E'), 0x00120001)
-                time.sleep(0.15)
-                win32gui.PostMessage(main_hwnd, win32con.WM_KEYUP, ord('E'), 0xC0120001)
-                win32gui.PostMessage(main_hwnd, win32con.WM_KEYUP, win32con.VK_CONTROL, 0xC01D0001)
-                time.sleep(0.5)
-                return True
+                # ── Phương án 2: WM_COMMAND qua toolbar button (không cần focus) ──
+                return _click_at_via_toolbar(main_hwnd)
         finally:
             user32.SystemParametersInfoW(SPI_SETFOREGROUNDLOCKTIMEOUT, 0,
                                          orig_timeout.value, SPIF_SENDCHANGE)
