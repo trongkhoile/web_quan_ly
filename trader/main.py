@@ -255,6 +255,23 @@ async def watch_accounts_changes():
                     worker_signal_modes[aid] = info.get("signalMode", "both")
                     worker_lots[aid] = float(info.get("lot", 0.01))
 
+            # Account active nhưng terminal không chạy → kill worker (nếu có) và mở lại
+            for aid in list(active_ids):
+                if aid not in provisioned_ids:
+                    continue
+                t_path = worker_terminal_paths.get(aid)
+                if not t_path or is_terminal_running(t_path):
+                    continue
+                logger.info(f"Account {aid}: terminal đóng nhưng isActive=True → dừng worker và mở lại...")
+                if aid in worker_queues:
+                    try:
+                        worker_queues[aid].put(SHUTDOWN_SIGNAL)
+                    except Exception:
+                        pass
+                    worker_queues.pop(aid, None)
+                worker_terminal_paths.pop(aid, None)
+                provisioned_ids.discard(aid)
+
             # Account bị XÓA khỏi DB → dừng worker VÀ kill terminal
             deleted_ids = [aid for aid in list(worker_queues.keys()) if aid not in all_ids]
             for acc_id in deleted_ids:
