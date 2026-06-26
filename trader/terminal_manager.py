@@ -171,6 +171,37 @@ def allocate_terminal(base_exe: str, login: int = 0, server: str = "") -> str:
         return create_terminal(base_exe, idx, login=login, server=server)
 
 
+def dismiss_login_dialogs():
+    """Đóng các dialog Login MT5 đang mở (terminal inactive không tự đăng nhập được)."""
+    import win32gui, win32con, win32process
+    import psutil
+
+    dismissed = 0
+
+    def _cb(hwnd, _):
+        nonlocal dismissed
+        try:
+            if not win32gui.IsWindowVisible(hwnd):
+                return
+            if win32gui.GetWindowText(hwnd) != "Login":
+                return
+            _, pid = win32process.GetWindowThreadProcessId(hwnd)
+            try:
+                if psutil.Process(pid).name().lower() != "terminal64.exe":
+                    return
+            except psutil.NoSuchProcess:
+                return
+            win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
+            logger.info(f"Dismiss Login dialog: PID={pid}")
+            dismissed += 1
+        except Exception:
+            pass
+
+    win32gui.EnumWindows(_cb, None)
+    if dismissed:
+        logger.info(f"Đã đóng {dismissed} Login dialog MT5")
+
+
 def kill_orphan_terminals(known_paths: list[str]):
     """Kill terminal64.exe đang chạy mà không có trong danh sách known_paths.
     known_paths nên bao gồm cả tài khoản inactive để tránh đóng nhầm.
@@ -213,6 +244,7 @@ def launch_terminal(terminal_path: str, login: int, password: str, server: str) 
             terminal_path,
             "/portable",
             f"/login:{login}",
+            f"/password:{password}",
             f"/server:{server}",
         ],
         cwd=terminal_dir,
