@@ -412,7 +412,16 @@ async def run():
                 break
             except Exception as e:
                 logger.warning(f"Telegram lỗi kết nối: {e} — thử lại sau 60s...")
-                await asyncio.sleep(60)
+                # Dừng app nếu còn đang running trước khi retry
+                try:
+                    if app.running:
+                        await app.stop()
+                except Exception:
+                    pass
+                try:
+                    await asyncio.sleep(60)
+                except asyncio.CancelledError:
+                    break
 
     asyncio.create_task(run_telegram())
 
