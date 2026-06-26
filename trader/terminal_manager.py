@@ -468,100 +468,75 @@ def _enable_algo_trading(app, pid: int, terminal_path: str = ""):
 
 
 
-def _click_at_via_toolbar(main_hwnd: int) -> bool:
+def _find_ctrl_e_command_id(exe_path: str) -> int | None:
     """
-    Tìm nút Allow AutoTrading trong toolbar MT5 qua cross-process memory,
-    lấy command ID rồi gửi WM_COMMAND — không cần focus, hoạt động khi RDP disconnect.
+    Đọc accelerator table trong MT5 exe để tìm command ID mà Ctrl+E map tới.
+    ACCEL struct: BYTE fVirt, BYTE pad, WORD key, WORD cmd = 6 bytes mỗi entry.
     """
     try:
-        import ctypes, struct, win32gui, win32con, win32process
+        import struct, win32api
+
+        RT_ACCELERATOR        = 9
+        LOAD_LIBRARY_AS_DATAFILE = 0x00000002
+        FVIRTKEY = 0x01
+        FCONTROL = 0x04
+        VK_E     = 0x45
+
+        h = win32api.LoadLibraryEx(exe_path, 0, LOAD_LIBRARY_AS_DATAFILE)
+        try:
+            names = win32api.EnumResourceNames(h, RT_ACCELERATOR)
+            for name in names:
+                data = bytes(win32api.LoadResource(h, RT_ACCELERATOR, name))
+                for i in range(0, len(data) - 5, 6):
+                    f_virt = data[i]
+                    key    = struct.unpack_from('<H', data, i + 2)[0]
+                    cmd    = struct.unpack_from('<H', data, i + 4)[0]
+                    if (f_virt & (FVIRTKEY | FCONTROL)) == (FVIRTKEY | FCONTROL) and key == VK_E:
+                        return cmd
+                    if f_virt & 0x80:  # last entry flag
+                        break
+        finally:
+            win32api.FreeLibrary(h)
+    except Exception as e:
+        logger.debug(f"_find_ctrl_e_command_id: {e}")
+    return None
+
+
+def _click_at_via_toolbar(main_hwnd: int) -> bool:
+    """
+    Gửi WM_COMMAND với command ID của Ctrl+E (đọc từ accelerator table trong MT5 exe).
+    Không cần focus — hoạt động khi RDP disconnect.
+    """
+    try:
+        import ctypes, win32gui, win32con, win32process
 
         kernel32 = ctypes.windll.kernel32
-        user32   = ctypes.windll.user32
 
-        TB_GETBUTTONCOUNT = 0x0418
-        TB_GETBUTTON      = 0x0417
-        TBSTYLE_CHECK     = 0x02
-        TBSTATE_ENABLED   = 0x04
-
-        # Command ID của các toggle panel trong View menu (không phải AT)
-        VIEW_PANEL_IDS = {32841, 32843, 32844, 32845, 32846, 32847, 32855,
-                          32900, 32901, 32931, 59393}
-
-        # Log toàn bộ child window classes để debug MT5 hierarchy
-        child_classes: list[tuple[int, str]] = []
-        def _enum_children(hwnd, _):
-            try:
-                child_classes.append((hwnd, win32gui.GetClassName(hwnd)))
-            except Exception:
-                pass
-        try:
-            win32gui.EnumChildWindows(main_hwnd, _enum_children, None)
-        except Exception:
-            pass
-        logger.info(f"MT5 child windows: {[(h, c) for h, c in child_classes]}")
-
-        # Thu thập tất cả toolbar handles
-        toolbar_hwnds = [(h, c) for h, c in child_classes if "oolbar" in c or "TOOLBAR" in c.upper()]
-        if not toolbar_hwnds:
-            logger.warning(f"_click_at_via_toolbar: không tìm thấy toolbar trong {len(child_classes)} child windows")
-            return False
-
+        # Lấy exe path của MT5 process
         _, mt5_pid = win32process.GetWindowThreadProcessId(main_hwnd)
-        h_proc = kernel32.OpenProcess(0x1F0FFF, False, mt5_pid)
+        h_proc = kernel32.OpenProcess(0x1000, False, mt5_pid)  # PROCESS_QUERY_LIMITED_INFORMATION
         if not h_proc:
             logger.warning("_click_at_via_toolbar: OpenProcess thất bại")
             return False
 
-        # TBBUTTON (64-bit): iBitmap[4] idCommand[4] fsState[1] fsStyle[1] reserved[6] dwData[8] iString[8] = 32 bytes
-        TB_BTN_SIZE = 32
-        remote = kernel32.VirtualAllocEx(h_proc, None, TB_BTN_SIZE, 0x3000, 0x04)
-        if not remote:
-            kernel32.CloseHandle(h_proc)
+        buf  = ctypes.create_unicode_buffer(1024)
+        size = ctypes.c_uint(1024)
+        kernel32.QueryFullProcessImageNameW(h_proc, 0, buf, ctypes.byref(size))
+        kernel32.CloseHandle(h_proc)
+        exe_path = buf.value
+
+        if not exe_path:
+            logger.warning("_click_at_via_toolbar: không lấy được exe path")
             return False
 
-        try:
-            at_cmd_id = None
-            at_toolbar_hwnd = None
+        cmd_id = _find_ctrl_e_command_id(exe_path)
+        if cmd_id:
+            logger.info(f"AT command ID={cmd_id} (từ accelerator table) → WM_COMMAND (no-focus)")
+            win32gui.PostMessage(main_hwnd, win32con.WM_COMMAND, cmd_id, 0)
+            return True
 
-            for tb_hwnd, tb_cls in toolbar_hwnds:
-                btn_count = user32.SendMessageW(tb_hwnd, TB_GETBUTTONCOUNT, 0, 0)
-                logger.info(f"  Toolbar hwnd={tb_hwnd} cls={tb_cls} btn_count={btn_count}")
-
-                for i in range(btn_count):
-                    kernel32.WriteProcessMemory(h_proc, remote, ctypes.c_char_p(b'\x00' * TB_BTN_SIZE), TB_BTN_SIZE, None)
-                    user32.SendMessageW(tb_hwnd, TB_GETBUTTON, i, remote)
-                    buf = (ctypes.c_char * TB_BTN_SIZE)()
-                    kernel32.ReadProcessMemory(h_proc, remote, buf, TB_BTN_SIZE, None)
-                    data = bytes(buf)
-                    cmd_id   = struct.unpack_from('<i', data, 4)[0]
-                    fs_state = data[8]
-                    fs_style = data[9]
-
-                    is_check   = bool(fs_style & TBSTYLE_CHECK)
-                    is_enabled = bool(fs_state & TBSTATE_ENABLED)
-                    logger.info(f"    btn[{i}] cmdId={cmd_id} state={fs_state:#x} style={fs_style:#x} check={is_check} enabled={is_enabled}")
-
-                    if is_check and is_enabled and cmd_id > 0 and cmd_id not in VIEW_PANEL_IDS:
-                        at_cmd_id = cmd_id
-                        at_toolbar_hwnd = tb_hwnd
-                        logger.info(f"  → AT button tìm thấy: idx={i} cmdId={cmd_id} toolbar={tb_hwnd}")
-                        break
-
-                if at_cmd_id:
-                    break
-
-            if at_cmd_id and at_toolbar_hwnd:
-                wparam = at_cmd_id & 0xFFFF  # HIWORD=0 (BN_CLICKED từ toolbar)
-                user32.PostMessageW(main_hwnd, win32con.WM_COMMAND, wparam, at_toolbar_hwnd)
-                logger.info(f"WM_COMMAND(id={at_cmd_id}) → AT toolbar (no-focus)")
-                return True
-            else:
-                logger.warning("_click_at_via_toolbar: không tìm thấy AT button trong bất kỳ toolbar nào")
-                return False
-        finally:
-            kernel32.VirtualFreeEx(h_proc, remote, 0, 0x8000)
-            kernel32.CloseHandle(h_proc)
+        logger.warning(f"_click_at_via_toolbar: không tìm thấy Ctrl+E trong accelerator table của {exe_path}")
+        return False
 
     except Exception as e:
         logger.warning(f"_click_at_via_toolbar lỗi: {e}")
