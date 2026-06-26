@@ -309,7 +309,7 @@ async def dispatch_signal(signal_text: str, signal: TradeSignal, source: str = "
         q.put((signal, mode, source, lot))
 
     results = []
-    deadline = time.time() + 30
+    deadline = time.time() + 60
     while len(results) < n:
         remaining = deadline - time.time()
         if remaining <= 0:
@@ -318,7 +318,7 @@ async def dispatch_signal(signal_text: str, signal: TradeSignal, source: str = "
             r = await asyncio.wait_for(trade_results.get(), timeout=min(remaining, 1.0))
             results.append(r)
         except asyncio.TimeoutError:
-            break
+            continue  # tiếp tục đợi đến hết deadline, không thoát sớm
 
     elapsed  = time.time() - t_start
     success  = sum(1 for r in results if r.get("success"))
@@ -330,7 +330,7 @@ async def dispatch_signal(signal_text: str, signal: TradeSignal, source: str = "
         for r in results
     ]
     if missing:
-        lines.append(f"⚠️ {missing} tài khoản không phản hồi trong 30s")
+        lines.append(f"⚠️ {missing} tài khoản không phản hồi trong 60s")
 
     summary = "\n".join(lines)
     log_trade(signal_text, "success" if not failed and not missing else "partial", summary)
