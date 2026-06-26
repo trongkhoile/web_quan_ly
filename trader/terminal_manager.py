@@ -244,7 +244,6 @@ def launch_terminal(terminal_path: str, login: int, password: str, server: str) 
             terminal_path,
             "/portable",
             f"/login:{login}",
-            f"/password:{password}",
             f"/server:{server}",
         ],
         cwd=terminal_dir,
