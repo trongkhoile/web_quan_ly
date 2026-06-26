@@ -398,9 +398,11 @@ async def run():
     app.add_handler(MessageHandler(filters.TEXT & filters.Chat(allowed_chats), handle_message))
 
     async def run_telegram():
-        while True:
-            try:
-                async with app:
+        # initialize một lần duy nhất — chỉ stop/start trong vòng retry
+        await app.initialize()
+        try:
+            while True:
+                try:
                     await app.start()
                     await app.updater.start_polling(
                         allowed_updates=["message", "channel_post", "edited_message"],
@@ -408,20 +410,25 @@ async def run():
                     )
                     logger.info(f"Bot đang chạy | DCA group: {GROUP_ID_DCA} | Simple group: {GROUP_ID_SIMPLE}")
                     await asyncio.Event().wait()
-            except asyncio.CancelledError:
-                break
-            except Exception as e:
-                logger.warning(f"Telegram lỗi kết nối: {e} — thử lại sau 60s...")
-                # Dừng app nếu còn đang running trước khi retry
-                try:
-                    if app.running:
-                        await app.stop()
-                except Exception:
-                    pass
+                except asyncio.CancelledError:
+                    break
+                except Exception as e:
+                    logger.warning(f"Telegram lỗi kết nối: {e} — thử lại sau 60s...")
+                finally:
+                    try:
+                        if app.running:
+                            await app.stop()
+                    except Exception:
+                        pass
                 try:
                     await asyncio.sleep(60)
                 except asyncio.CancelledError:
                     break
+        finally:
+            try:
+                await app.shutdown()
+            except Exception:
+                pass
 
     asyncio.create_task(run_telegram())
 
