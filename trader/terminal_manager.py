@@ -483,33 +483,32 @@ def _click_at_via_toolbar(main_hwnd: int) -> bool:
         TB_GETBUTTON      = 0x0417
         TBSTYLE_CHECK     = 0x02
         TBSTATE_ENABLED   = 0x04
-        TBSTATE_CHECKED   = 0x01
 
         # Command ID của các toggle panel trong View menu (không phải AT)
         VIEW_PANEL_IDS = {32841, 32843, 32844, 32845, 32846, 32847, 32855,
                           32900, 32901, 32931, 59393}
 
-        # Tìm toolbar (ToolbarWindow32 hoặc class chứa "oolbar")
-        toolbar_hwnd = None
-        def _find_tb(hwnd, _):
-            nonlocal toolbar_hwnd
+        # Log toàn bộ child window classes để debug MT5 hierarchy
+        child_classes: list[tuple[int, str]] = []
+        def _enum_children(hwnd, _):
             try:
-                if "oolbar" in win32gui.GetClassName(hwnd):
-                    toolbar_hwnd = hwnd
-                    return False
+                child_classes.append((hwnd, win32gui.GetClassName(hwnd)))
             except Exception:
                 pass
         try:
-            win32gui.EnumChildWindows(main_hwnd, _find_tb, None)
+            win32gui.EnumChildWindows(main_hwnd, _enum_children, None)
         except Exception:
             pass
+        logger.info(f"MT5 child windows: {[(h, c) for h, c in child_classes]}")
 
-        if not toolbar_hwnd:
-            logger.warning("_click_at_via_toolbar: không tìm thấy toolbar")
+        # Thu thập tất cả toolbar handles
+        toolbar_hwnds = [(h, c) for h, c in child_classes if "oolbar" in c or "TOOLBAR" in c.upper()]
+        if not toolbar_hwnds:
+            logger.warning(f"_click_at_via_toolbar: không tìm thấy toolbar trong {len(child_classes)} child windows")
             return False
 
-        _, mt5_pid = win32process.GetWindowThreadProcessId(toolbar_hwnd)
-        h_proc = kernel32.OpenProcess(0x1F0FFF, False, mt5_pid)  # PROCESS_ALL_ACCESS
+        _, mt5_pid = win32process.GetWindowThreadProcessId(main_hwnd)
+        h_proc = kernel32.OpenProcess(0x1F0FFF, False, mt5_pid)
         if not h_proc:
             logger.warning("_click_at_via_toolbar: OpenProcess thất bại")
             return False
@@ -522,34 +521,43 @@ def _click_at_via_toolbar(main_hwnd: int) -> bool:
             return False
 
         try:
-            btn_count = user32.SendMessageW(toolbar_hwnd, TB_GETBUTTONCOUNT, 0, 0)
             at_cmd_id = None
+            at_toolbar_hwnd = None
 
-            for i in range(btn_count):
-                kernel32.WriteProcessMemory(h_proc, remote, ctypes.c_char_p(b'\x00' * TB_BTN_SIZE), TB_BTN_SIZE, None)
-                user32.SendMessageW(toolbar_hwnd, TB_GETBUTTON, i, remote)
-                buf = (ctypes.c_char * TB_BTN_SIZE)()
-                kernel32.ReadProcessMemory(h_proc, remote, buf, TB_BTN_SIZE, None)
-                data = bytes(buf)
-                cmd_id   = struct.unpack_from('<i', data, 4)[0]
-                fs_state = data[8]
-                fs_style = data[9]
+            for tb_hwnd, tb_cls in toolbar_hwnds:
+                btn_count = user32.SendMessageW(tb_hwnd, TB_GETBUTTONCOUNT, 0, 0)
+                logger.info(f"  Toolbar hwnd={tb_hwnd} cls={tb_cls} btn_count={btn_count}")
 
-                is_check   = bool(fs_style & TBSTYLE_CHECK)
-                is_enabled = bool(fs_state & TBSTATE_ENABLED)
+                for i in range(btn_count):
+                    kernel32.WriteProcessMemory(h_proc, remote, ctypes.c_char_p(b'\x00' * TB_BTN_SIZE), TB_BTN_SIZE, None)
+                    user32.SendMessageW(tb_hwnd, TB_GETBUTTON, i, remote)
+                    buf = (ctypes.c_char * TB_BTN_SIZE)()
+                    kernel32.ReadProcessMemory(h_proc, remote, buf, TB_BTN_SIZE, None)
+                    data = bytes(buf)
+                    cmd_id   = struct.unpack_from('<i', data, 4)[0]
+                    fs_state = data[8]
+                    fs_style = data[9]
 
-                if is_check and is_enabled and cmd_id > 0 and cmd_id not in VIEW_PANEL_IDS:
-                    at_cmd_id = cmd_id
-                    logger.info(f"AT toolbar button: idx={i} cmdId={cmd_id} state={fs_state:#x}")
+                    is_check   = bool(fs_style & TBSTYLE_CHECK)
+                    is_enabled = bool(fs_state & TBSTATE_ENABLED)
+                    logger.info(f"    btn[{i}] cmdId={cmd_id} state={fs_state:#x} style={fs_style:#x} check={is_check} enabled={is_enabled}")
+
+                    if is_check and is_enabled and cmd_id > 0 and cmd_id not in VIEW_PANEL_IDS:
+                        at_cmd_id = cmd_id
+                        at_toolbar_hwnd = tb_hwnd
+                        logger.info(f"  → AT button tìm thấy: idx={i} cmdId={cmd_id} toolbar={tb_hwnd}")
+                        break
+
+                if at_cmd_id:
                     break
 
-            if at_cmd_id:
-                wparam = (0 << 16) | (at_cmd_id & 0xFFFF)  # HIWORD=BN_CLICKED=0
-                user32.PostMessageW(main_hwnd, win32con.WM_COMMAND, wparam, toolbar_hwnd)
+            if at_cmd_id and at_toolbar_hwnd:
+                wparam = at_cmd_id & 0xFFFF  # HIWORD=0 (BN_CLICKED từ toolbar)
+                user32.PostMessageW(main_hwnd, win32con.WM_COMMAND, wparam, at_toolbar_hwnd)
                 logger.info(f"WM_COMMAND(id={at_cmd_id}) → AT toolbar (no-focus)")
                 return True
             else:
-                logger.warning(f"_click_at_via_toolbar: không tìm thấy AT button (btn_count={btn_count})")
+                logger.warning("_click_at_via_toolbar: không tìm thấy AT button trong bất kỳ toolbar nào")
                 return False
         finally:
             kernel32.VirtualFreeEx(h_proc, remote, 0, 0x8000)
