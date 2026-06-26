@@ -626,7 +626,27 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
                     time.sleep(0.5)
                     return True
                 else:
-                    logger.warning("Không tìm thấy menu item AutoTrading → retry sau")
+                    # Debug: log tất cả windows và menu items tìm được
+                    logger.warning(f"Không tìm thấy menu item AutoTrading. Windows found: {[(h, t[:40]) for h, t in found[:5]]}")
+                    try:
+                        hmenu = win32gui.GetMenu(main_hwnd)
+                        logger.warning(f"GetMenu({main_hwnd})={hmenu}")
+                        if hmenu:
+                            all_items = []
+                            for i in range(win32gui.GetMenuItemCount(hmenu)):
+                                sub = win32gui.GetSubMenu(hmenu, i)
+                                top_text = win32gui.GetMenuString(hmenu, i, win32con.MF_BYPOSITION)
+                                if sub:
+                                    for j in range(min(win32gui.GetMenuItemCount(sub), 20)):
+                                        try:
+                                            mid = win32gui.GetMenuItemID(sub, j)
+                                            text = win32gui.GetMenuString(sub, j, win32con.MF_BYPOSITION)
+                                            all_items.append(f"{top_text}>{text}(id={mid})")
+                                        except Exception:
+                                            pass
+                            logger.warning(f"Menu items: {all_items}")
+                    except Exception as e:
+                        logger.warning(f"Menu debug lỗi: {e}")
                     return False
         finally:
             user32.SystemParametersInfoW(SPI_SETFOREGROUNDLOCKTIMEOUT, 0,
