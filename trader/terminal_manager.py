@@ -596,7 +596,7 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
             logger.info(f"Focus: hwnd={main_hwnd} actual={actual_fg} match={actual_fg == main_hwnd}")
 
             if actual_fg == main_hwnd:
-                # ── Phương án 1: Ctrl+E (focus đạt được) ──
+                # ── Phương án 1: Ctrl+E qua keybd_event (focus đạt được) ──
                 time.sleep(0.3)
                 win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
                 win32api.keybd_event(ord('E'), 0, 0, 0)
@@ -607,82 +607,16 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
                 logger.info(f"Ctrl+E → '{found[0][1][:45]}'")
                 return True
             else:
-                # ── Phương án 2: WM_COMMAND qua menu (không cần focus) ──
-                import ctypes as _ct
-                _user32 = _ct.windll.user32
-
-                def _menu_str(hmenu, idx):
-                    buf = _ct.create_unicode_buffer(256)
-                    _user32.GetMenuStringW(hmenu, idx, buf, 256, win32con.MF_BYPOSITION)
-                    return buf.value
-
-                at_keywords = {"autotrad", "autotrading", "auto trad", "algo trad",
-                               "allow auto", "expert advis"}
-
-                def _scan_menu_recursive(menu, depth=0):
-                    if depth > 4:
-                        return None
-                    for j in range(win32gui.GetMenuItemCount(menu)):
-                        try:
-                            mid = win32gui.GetMenuItemID(menu, j)
-                            txt = _menu_str(menu, j)
-                            if mid > 0 and txt and any(kw in txt.lower() for kw in at_keywords):
-                                return mid
-                            if mid == -1:  # submenu lồng → đệ quy
-                                sub = win32gui.GetSubMenu(menu, j)
-                                if sub:
-                                    result = _scan_menu_recursive(sub, depth + 1)
-                                    if result:
-                                        return result
-                        except Exception:
-                            pass
-                    return None
-
-                cmd_id = None
-                try:
-                    hmenu = win32gui.GetMenu(main_hwnd)
-                    if hmenu:
-                        for i in range(win32gui.GetMenuItemCount(hmenu)):
-                            sub = win32gui.GetSubMenu(hmenu, i)
-                            if sub:
-                                cmd_id = _scan_menu_recursive(sub)
-                                if cmd_id:
-                                    break
-                except Exception:
-                    pass
-
-                if cmd_id:
-                    win32gui.PostMessage(main_hwnd, win32con.WM_COMMAND, cmd_id, 0)
-                    logger.info(f"WM_COMMAND(id={cmd_id}) → AT menu (no-focus fallback)")
-                    time.sleep(0.5)
-                    return True
-                else:
-                    # Debug: dump toàn bộ menu (kể cả submenu lồng)
-                    try:
-                        hmenu = win32gui.GetMenu(main_hwnd)
-                        if hmenu:
-                            all_items = []
-                            def _dump(menu, prefix="", depth=0):
-                                if depth > 3:
-                                    return
-                                for j in range(win32gui.GetMenuItemCount(menu)):
-                                    try:
-                                        mid = win32gui.GetMenuItemID(menu, j)
-                                        txt = _menu_str(menu, j)
-                                        all_items.append(f"{prefix}{txt}(id={mid})")
-                                        if mid == -1:
-                                            sub = win32gui.GetSubMenu(menu, j)
-                                            if sub:
-                                                _dump(sub, f"{prefix}{txt}>", depth+1)
-                                    except Exception:
-                                        pass
-                            _dump(hmenu)
-                            logger.warning(f"MT5 full menu dump ({len(all_items)} items): {all_items}")
-                        else:
-                            logger.warning(f"GetMenu=None hwnd={main_hwnd}")
-                    except Exception as e:
-                        logger.warning(f"Menu dump lỗi: {e}")
-                    return False
+                # ── Phương án 2: PostMessage WM_KEYDOWN Ctrl+E trực tiếp vào window ──
+                # Hoạt động kể cả khi RDP disconnect (không cần focus)
+                logger.info(f"PostMessage Ctrl+E → hwnd={main_hwnd} (no-focus fallback)")
+                win32gui.PostMessage(main_hwnd, win32con.WM_KEYDOWN, win32con.VK_CONTROL, 0x001D0001)
+                win32gui.PostMessage(main_hwnd, win32con.WM_KEYDOWN, ord('E'), 0x00120001)
+                time.sleep(0.15)
+                win32gui.PostMessage(main_hwnd, win32con.WM_KEYUP, ord('E'), 0xC0120001)
+                win32gui.PostMessage(main_hwnd, win32con.WM_KEYUP, win32con.VK_CONTROL, 0xC01D0001)
+                time.sleep(0.5)
+                return True
         finally:
             user32.SystemParametersInfoW(SPI_SETFOREGROUNDLOCKTIMEOUT, 0,
                                          orig_timeout.value, SPIF_SENDCHANGE)
