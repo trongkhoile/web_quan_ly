@@ -48,6 +48,11 @@ def get_active_accounts() -> List[Tuple[str, str, int, str, str, Optional[str]]]
     return [t for a in _api("GET", "?type=active") if (t := _to_tuple(a)) is not None]
 
 
+def get_all_accounts() -> List[Tuple[str, str, int, str, str, Optional[str]]]:
+    """Trả về tất cả account kể cả inactive (để provision MT5 khi restart)."""
+    return [t for a in _api("GET", "?type=all") if (t := _to_tuple(a)) is not None]
+
+
 def get_pending_accounts() -> List[Tuple[str, str, int, str, str, Optional[str]]]:
     return [t for a in _api("GET", "?type=pending") if (t := _to_tuple(a)) is not None]
 

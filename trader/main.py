@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, ContextTypes, MessageHandler, filters
 
-from db import get_active_accounts, get_pending_accounts, get_all_account_ids, get_all_terminal_paths, update_account_status, log_trade, set_terminal_path, push_trade_history
+from db import get_active_accounts, get_pending_accounts, get_all_account_ids, get_all_terminal_paths, get_all_accounts, update_account_status, log_trade, set_terminal_path, push_trade_history
 from signal_parser import parse_signal, TradeSignal
 from terminal_manager import (
     allocate_terminal,
@@ -193,26 +193,28 @@ async def provision_account(acc_id: str, name: str, login: int, password: str,
 # ── Startup ────────────────────────────────────────────────────────────────
 
 async def load_existing_accounts():
-    accounts = get_active_accounts()
-    if not accounts:
+    all_accs = get_all_accounts()  # cả active lẫn inactive
+    if not all_accs:
         logger.info("Chưa có tài khoản. Chờ người dùng đăng ký qua web...")
         kill_orphan_terminals(get_all_terminal_paths())
         dismiss_login_dialogs()
         return
 
-    # Kill terminal không thuộc tài khoản nào (kể cả inactive) trước khi provision
+    # Kill terminal không thuộc tài khoản nào trước khi provision
     kill_orphan_terminals(get_all_terminal_paths())
-    # Đóng Login dialog còn sót (terminal inactive không tự đăng nhập được)
     dismiss_login_dialogs()
 
     # Đánh dấu ngay để watch_new_accounts không provision trùng
-    for acc in accounts:
+    active_acc_ids = {a[0] for a in get_active_accounts()}
+    for acc in all_accs:
         provisioned_ids.add(acc[0])
+        if acc[0] not in active_acc_ids:
+            inactive_ids.add(acc[0])  # khởi tạo sớm để dispatch_signal không gửi cho inactive
 
-    logger.info(f"Provision {len(accounts)} tài khoản hiện có...")
+    logger.info(f"Provision {len(all_accs)} tài khoản (kể cả inactive)...")
     tasks = [
         provision_account(acc_id, name, int(login), password, server, terminal_path, signal_mode, lot)
-        for acc_id, name, login, password, server, terminal_path, signal_mode, lot in accounts
+        for acc_id, name, login, password, server, terminal_path, signal_mode, lot in all_accs
     ]
     await asyncio.gather(*tasks)
 
