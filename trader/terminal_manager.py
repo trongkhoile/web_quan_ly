@@ -536,8 +536,15 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
             logger.warning("enable_algo_trading_by_path: không tìm thấy MT5 window")
             return False
 
-        found.sort(key=lambda x: len(x[1]), reverse=True)
-        main_hwnd = found[0][0]
+        # Ưu tiên window có menu bar (main frame MT5) thay vì window tiêu đề dài nhất
+        main_hwnd = None
+        for hwnd, title in found:
+            if win32gui.GetMenu(hwnd):
+                main_hwnd = hwnd
+                break
+        if main_hwnd is None:
+            found.sort(key=lambda x: len(x[1]), reverse=True)
+            main_hwnd = found[0][0]
         mt5_pid   = list(target_pids)[0]
 
         import ctypes
