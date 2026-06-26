@@ -529,6 +529,10 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
             if wpid in target_pids:
                 title = win32gui.GetWindowText(hwnd)
                 if title:
+                    # Đóng popup LiveUpdate để không cướp focus
+                    if "liveupdate" in title.lower() or "live update" in title.lower():
+                        win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
+                        return
                     found.append((hwnd, title))
         win32gui.EnumWindows(_cb, None)
 
@@ -601,6 +605,14 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
                 return True
             else:
                 # ── Phương án 2: WM_COMMAND qua menu (không cần focus) ──
+                import ctypes as _ct
+                _user32 = _ct.windll.user32
+
+                def _menu_str(hmenu, idx):
+                    buf = _ct.create_unicode_buffer(256)
+                    _user32.GetMenuStringW(hmenu, idx, buf, 256, win32con.MF_BYPOSITION)
+                    return buf.value
+
                 at_keywords = {"autotrad", "autotrading", "auto trad", "algo trad",
                                "allow auto", "expert advis"}
                 cmd_id = None
@@ -616,7 +628,7 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
                                     mid = win32gui.GetMenuItemID(sub, j)
                                     if mid <= 0:
                                         continue
-                                    text = win32gui.GetMenuString(sub, j, win32con.MF_BYPOSITION)
+                                    text = _menu_str(sub, j)
                                     if text and any(kw in text.lower() for kw in at_keywords):
                                         cmd_id = mid
                                         break
@@ -629,31 +641,31 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
 
                 if cmd_id:
                     win32gui.PostMessage(main_hwnd, win32con.WM_COMMAND, cmd_id, 0)
-                    logger.info(f"WM_COMMAND(id={cmd_id}) → '{found[0][1][:45]}'")
+                    logger.info(f"WM_COMMAND(id={cmd_id}) → AT menu")
                     time.sleep(0.5)
                     return True
                 else:
-                    # Debug: log tất cả windows và menu items tìm được
-                    logger.warning(f"Không tìm thấy menu item AutoTrading. Windows found: {[(h, t[:40]) for h, t in found[:5]]}")
+                    # Debug: dump toàn bộ menu để tìm đúng keyword
                     try:
                         hmenu = win32gui.GetMenu(main_hwnd)
-                        logger.warning(f"GetMenu({main_hwnd})={hmenu}")
                         if hmenu:
                             all_items = []
                             for i in range(win32gui.GetMenuItemCount(hmenu)):
                                 sub = win32gui.GetSubMenu(hmenu, i)
-                                top_text = win32gui.GetMenuString(hmenu, i, win32con.MF_BYPOSITION)
+                                top = _menu_str(hmenu, i)
                                 if sub:
                                     for j in range(min(win32gui.GetMenuItemCount(sub), 20)):
                                         try:
                                             mid = win32gui.GetMenuItemID(sub, j)
-                                            text = win32gui.GetMenuString(sub, j, win32con.MF_BYPOSITION)
-                                            all_items.append(f"{top_text}>{text}(id={mid})")
+                                            txt = _menu_str(sub, j)
+                                            all_items.append(f"{top}>{txt}(id={mid})")
                                         except Exception:
                                             pass
-                            logger.warning(f"Menu items: {all_items}")
+                            logger.warning(f"MT5 menu dump: {all_items[:40]}")
+                        else:
+                            logger.warning(f"Không tìm thấy AT menu. hwnd={main_hwnd} GetMenu=None. Windows: {[(h,t[:35]) for h,t in found[:5]]}")
                     except Exception as e:
-                        logger.warning(f"Menu debug lỗi: {e}")
+                        logger.warning(f"Menu dump lỗi: {e}")
                     return False
         finally:
             user32.SystemParametersInfoW(SPI_SETFOREGROUNDLOCKTIMEOUT, 0,
