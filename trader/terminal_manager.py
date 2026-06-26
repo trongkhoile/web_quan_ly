@@ -561,8 +561,32 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
                 time.sleep(1)
 
         if not target_pids:
-            logger.warning(f"enable_algo_trading_by_path: không tìm thấy process {terminal_path}")
-            return False
+            # Debug: liệt kê tất cả terminal64.exe đang chạy để hiểu vấn đề
+            all_t64: list[tuple[int, str]] = []
+            for proc in psutil.process_iter(["exe", "pid"]):
+                try:
+                    exe = proc.info.get("exe") or ""
+                    if os.path.basename(exe).lower() == "terminal64.exe":
+                        all_t64.append((proc.pid, exe))
+                except Exception:
+                    pass
+            if all_t64:
+                logger.warning(
+                    f"enable_algo_trading_by_path: không tìm thấy process tại {terminal_path}. "
+                    f"Các terminal64.exe đang chạy: {all_t64}"
+                )
+                # MT5 có thể đã update và restart tại path khác — nếu chỉ 1 process thì dùng luôn
+                if len(all_t64) == 1:
+                    target_pids.add(all_t64[0][0])
+                    logger.info(f"Dùng terminal64.exe duy nhất đang chạy: PID={all_t64[0][0]} {all_t64[0][1]}")
+                else:
+                    return False
+            else:
+                logger.warning(
+                    f"enable_algo_trading_by_path: không tìm thấy process {terminal_path} "
+                    f"(không có terminal64.exe nào đang chạy)"
+                )
+                return False
 
         found = []
         def _cb(hwnd, _):
