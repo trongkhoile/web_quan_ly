@@ -16,7 +16,7 @@ def _api(method: str, path: str = "", **kwargs):
 def _to_tuple(acc) -> Optional[Tuple[str, str, int, str, str, Optional[str], str, float]]:
     try:
         login = int(acc["mt5Login"])
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, KeyError):
         import logging
         logging.warning(f"Bỏ qua tài khoản '{acc.get('name')}': mt5Login không hợp lệ ({acc.get('mt5Login')})")
         return None
