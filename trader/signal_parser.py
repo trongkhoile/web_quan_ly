@@ -15,8 +15,9 @@ class TradeSignal:
 
 
 # Từ không phải symbol dù toàn chữ hoa
-_NOT_SYMBOL = {"BUY", "SELL", "CLOSE", "PRO", "SIGNAL", "TRADE", "ALERT",
-               "ENTRY", "STOP", "TAKE", "PROFIT", "LOSS", "LOT", "TP", "SL"}
+_NOT_SYMBOL = {"BUY", "SELL", "CLOSE", "PRO", "VIP", "SIGNAL", "TRADE", "ALERT",
+               "ENTRY", "STOP", "TAKE", "PROFIT", "LOSS", "LOT", "TP", "SL",
+               "DCA", "STANDARD", "PREMIUM", "MINI", "MICRO", "ORDER", "LIMIT"}
 
 
 def _strip_emojis(text: str) -> str:
@@ -75,6 +76,19 @@ def parse_signal(text: str) -> Optional[TradeSignal]:
         if tok not in _NOT_SYMBOL:
             symbol = tok
             break
+    if not symbol:
+        # Fallback: tìm symbol trên các dòng tiếp theo (ví dụ "- XAUUSD" trên dòng 2)
+        for line in lines[1:]:
+            upper = line.upper()
+            if any(upper.startswith(k) for k in ("ENTRY", "SL", "TP", "DCA", "LOT")):
+                break
+            toks = re.findall(r"[A-Z][A-Z0-9]{1,9}", upper)
+            for tok in reversed(toks):
+                if tok not in _NOT_SYMBOL:
+                    symbol = tok
+                    break
+            if symbol:
+                break
     if not symbol:
         return None
 
