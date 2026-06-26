@@ -615,55 +615,68 @@ def enable_algo_trading_by_path(terminal_path: str) -> bool:
 
                 at_keywords = {"autotrad", "autotrading", "auto trad", "algo trad",
                                "allow auto", "expert advis"}
+
+                def _scan_menu_recursive(menu, depth=0):
+                    if depth > 4:
+                        return None
+                    for j in range(win32gui.GetMenuItemCount(menu)):
+                        try:
+                            mid = win32gui.GetMenuItemID(menu, j)
+                            txt = _menu_str(menu, j)
+                            if mid > 0 and txt and any(kw in txt.lower() for kw in at_keywords):
+                                return mid
+                            if mid == -1:  # submenu lồng → đệ quy
+                                sub = win32gui.GetSubMenu(menu, j)
+                                if sub:
+                                    result = _scan_menu_recursive(sub, depth + 1)
+                                    if result:
+                                        return result
+                        except Exception:
+                            pass
+                    return None
+
                 cmd_id = None
                 try:
                     hmenu = win32gui.GetMenu(main_hwnd)
                     if hmenu:
                         for i in range(win32gui.GetMenuItemCount(hmenu)):
                             sub = win32gui.GetSubMenu(hmenu, i)
-                            if not sub:
-                                continue
-                            for j in range(win32gui.GetMenuItemCount(sub)):
-                                try:
-                                    mid = win32gui.GetMenuItemID(sub, j)
-                                    if mid <= 0:
-                                        continue
-                                    text = _menu_str(sub, j)
-                                    if text and any(kw in text.lower() for kw in at_keywords):
-                                        cmd_id = mid
-                                        break
-                                except Exception:
-                                    pass
-                            if cmd_id:
-                                break
+                            if sub:
+                                cmd_id = _scan_menu_recursive(sub)
+                                if cmd_id:
+                                    break
                 except Exception:
                     pass
 
                 if cmd_id:
                     win32gui.PostMessage(main_hwnd, win32con.WM_COMMAND, cmd_id, 0)
-                    logger.info(f"WM_COMMAND(id={cmd_id}) → AT menu")
+                    logger.info(f"WM_COMMAND(id={cmd_id}) → AT menu (no-focus fallback)")
                     time.sleep(0.5)
                     return True
                 else:
-                    # Debug: dump toàn bộ menu để tìm đúng keyword
+                    # Debug: dump toàn bộ menu (kể cả submenu lồng)
                     try:
                         hmenu = win32gui.GetMenu(main_hwnd)
                         if hmenu:
                             all_items = []
-                            for i in range(win32gui.GetMenuItemCount(hmenu)):
-                                sub = win32gui.GetSubMenu(hmenu, i)
-                                top = _menu_str(hmenu, i)
-                                if sub:
-                                    for j in range(min(win32gui.GetMenuItemCount(sub), 20)):
-                                        try:
-                                            mid = win32gui.GetMenuItemID(sub, j)
-                                            txt = _menu_str(sub, j)
-                                            all_items.append(f"{top}>{txt}(id={mid})")
-                                        except Exception:
-                                            pass
-                            logger.warning(f"MT5 menu dump: {all_items[:40]}")
+                            def _dump(menu, prefix="", depth=0):
+                                if depth > 3:
+                                    return
+                                for j in range(win32gui.GetMenuItemCount(menu)):
+                                    try:
+                                        mid = win32gui.GetMenuItemID(menu, j)
+                                        txt = _menu_str(menu, j)
+                                        all_items.append(f"{prefix}{txt}(id={mid})")
+                                        if mid == -1:
+                                            sub = win32gui.GetSubMenu(menu, j)
+                                            if sub:
+                                                _dump(sub, f"{prefix}{txt}>", depth+1)
+                                    except Exception:
+                                        pass
+                            _dump(hmenu)
+                            logger.warning(f"MT5 full menu dump ({len(all_items)} items): {all_items}")
                         else:
-                            logger.warning(f"Không tìm thấy AT menu. hwnd={main_hwnd} GetMenu=None. Windows: {[(h,t[:35]) for h,t in found[:5]]}")
+                            logger.warning(f"GetMenu=None hwnd={main_hwnd}")
                     except Exception as e:
                         logger.warning(f"Menu dump lỗi: {e}")
                     return False
