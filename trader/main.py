@@ -400,14 +400,18 @@ async def run():
     async def run_telegram():
         # initialize một lần duy nhất — chỉ stop/start trong vòng retry
         await app.initialize()
+        first_start = True
         try:
             while True:
                 try:
                     await app.start()
                     await app.updater.start_polling(
                         allowed_updates=["message", "channel_post", "edited_message"],
-                        drop_pending_updates=True,
+                        # Lần đầu: drop tin nhắn cũ trước khi bot start
+                        # Auto-restart: giữ lại để không mất tín hiệu trong lúc reconnect
+                        drop_pending_updates=first_start,
                     )
+                    first_start = False
                     logger.info(f"Bot đang chạy | DCA group: {GROUP_ID_DCA} | Simple group: {GROUP_ID_SIMPLE}")
                     # Heartbeat 5 phút/lần: phát hiện polling chết lặng
                     while True:
@@ -418,7 +422,7 @@ async def run():
                 except asyncio.CancelledError:
                     break
                 except Exception as e:
-                    logger.warning(f"Telegram lỗi kết nối: {e} — thử lại sau 60s...")
+                    logger.warning(f"Telegram lỗi kết nối: {e} — thử lại sau 5s...")
                 finally:
                     try:
                         if app.running:
@@ -426,7 +430,7 @@ async def run():
                     except Exception:
                         pass
                 try:
-                    await asyncio.sleep(60)
+                    await asyncio.sleep(5)
                 except asyncio.CancelledError:
                     break
         finally:
