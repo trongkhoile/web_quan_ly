@@ -409,7 +409,12 @@ async def run():
                         drop_pending_updates=True,
                     )
                     logger.info(f"Bot đang chạy | DCA group: {GROUP_ID_DCA} | Simple group: {GROUP_ID_SIMPLE}")
-                    await asyncio.Event().wait()
+                    # Heartbeat 5 phút/lần: phát hiện polling chết lặng
+                    while True:
+                        await asyncio.sleep(300)
+                        if not app.updater.running:
+                            raise RuntimeError("Telegram updater dừng bất ngờ — restart")
+                        await app.bot.get_me()  # ping Telegram API
                 except asyncio.CancelledError:
                     break
                 except Exception as e:
