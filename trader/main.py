@@ -393,7 +393,15 @@ async def run():
 
     await load_existing_accounts()
 
-    app = Application.builder().token(BOT_TOKEN).build()
+    app = (
+        Application.builder()
+        .token(BOT_TOKEN)
+        .connect_timeout(10.0)
+        .read_timeout(30.0)
+        .write_timeout(10.0)
+        .pool_timeout(5.0)
+        .build()
+    )
     allowed_chats = [GROUP_ID_DCA] + ([GROUP_ID_SIMPLE] if GROUP_ID_SIMPLE else [])
     app.add_handler(MessageHandler(filters.TEXT & filters.Chat(allowed_chats), handle_message))
 
