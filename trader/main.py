@@ -193,19 +193,21 @@ async def provision_account(acc_id: str, name: str, login: int, password: str,
 # ── Startup ────────────────────────────────────────────────────────────────
 
 async def load_existing_accounts():
-    all_accs = get_all_accounts()  # cả active lẫn inactive
+    all_accs = await asyncio.to_thread(get_all_accounts)
     if not all_accs:
         logger.info("Chưa có tài khoản. Chờ người dùng đăng ký qua web...")
-        kill_orphan_terminals(get_all_terminal_paths())
+        terminal_paths = await asyncio.to_thread(get_all_terminal_paths)
+        kill_orphan_terminals(terminal_paths)
         dismiss_login_dialogs()
         return
 
     # Kill terminal không thuộc tài khoản nào trước khi provision
-    kill_orphan_terminals(get_all_terminal_paths())
+    terminal_paths = await asyncio.to_thread(get_all_terminal_paths)
+    kill_orphan_terminals(terminal_paths)
     dismiss_login_dialogs()
 
     # Đánh dấu ngay để watch_new_accounts không provision trùng
-    active_acc_ids = {a[0] for a in get_active_accounts()}
+    active_acc_ids = {a[0] for a in await asyncio.to_thread(get_active_accounts)}
     for acc in all_accs:
         provisioned_ids.add(acc[0])
         if acc[0] not in active_acc_ids:
@@ -225,7 +227,8 @@ async def watch_new_accounts():
     while True:
         await asyncio.sleep(10)
         try:
-            for acc in get_active_accounts() + get_pending_accounts():
+            accs = await asyncio.to_thread(lambda: get_active_accounts() + get_pending_accounts())
+            for acc in accs:
                 acc_id = acc[0]
                 if acc_id not in provisioned_ids:
                     provisioned_ids.add(acc_id)  # Đánh dấu ngay, tránh provision trùng
@@ -243,7 +246,7 @@ async def watch_accounts_changes():
     while True:
         await asyncio.sleep(5)
         try:
-            all_accounts = get_all_account_ids()  # {id: {isActive, signalMode}}
+            all_accounts = await asyncio.to_thread(get_all_account_ids)  # {id: {isActive, signalMode}}
             all_ids      = set(all_accounts.keys())
             active_ids   = {aid for aid, info in all_accounts.items() if info["isActive"]}
 
