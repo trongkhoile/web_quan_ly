@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     if (e?.code === "P2002") {
       return NextResponse.json({ error: `Tài khoản MT5 ${mt5Login} trên server ${mt5Server} đã được đăng ký` }, { status: 409 });
     }
-    throw e;
+    return NextResponse.json({ error: "Lỗi server, thử lại sau" }, { status: 500 });
   }
 }
 
