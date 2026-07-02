@@ -436,6 +436,11 @@ async def run():
                     logger.warning(f"Telegram lỗi kết nối: {e} — thử lại sau 5s...")
                 finally:
                     try:
+                        if app.updater.running:
+                            await app.updater.stop()
+                    except Exception:
+                        pass
+                    try:
                         if app.running:
                             await app.stop()
                     except Exception:
