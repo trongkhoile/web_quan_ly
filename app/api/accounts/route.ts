@@ -33,20 +33,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Thiếu thông tin bắt buộc" }, { status: 400 });
   }
 
-  const count = await prisma.mt5Account.count({ where: { userId: session.userId } });
-  if (count >= 3) {
-    return NextResponse.json({ error: "Mỗi tài khoản chỉ được đăng ký tối đa 3 tài khoản MT5" }, { status: 400 });
-  }
-
   try {
-    const record = await prisma.mt5Account.create({
-      data: { userId: session.userId, name, mt5Login, mt5Password, mt5Server, status: "pending" },
+    const record = await prisma.$transaction(async (tx) => {
+      const count = await tx.mt5Account.count({ where: { userId: session.userId } });
+      if (count >= 3) throw Object.assign(new Error("limit"), { code: "LIMIT" });
+      return tx.mt5Account.create({
+        data: { userId: session.userId, name, mt5Login, mt5Password, mt5Server, status: "pending" },
+      });
     });
     return NextResponse.json({ ok: true, id: record.id }, { status: 201 });
   } catch (e: any) {
-    if (e?.code === "P2002") {
+    if (e?.code === "LIMIT")
+      return NextResponse.json({ error: "Mỗi tài khoản chỉ được đăng ký tối đa 3 tài khoản MT5" }, { status: 400 });
+    if (e?.code === "P2002")
       return NextResponse.json({ error: `Tài khoản MT5 ${mt5Login} trên server ${mt5Server} đã được đăng ký` }, { status: 409 });
-    }
     return NextResponse.json({ error: "Lỗi server, thử lại sau" }, { status: 500 });
   }
 }
@@ -66,7 +66,7 @@ export async function PATCH(req: NextRequest) {
 
   const signalMode = req.nextUrl.searchParams.get("signalMode");
   if (signalMode) {
-    if (!["simple", "dca", "both"].includes(signalMode))
+    if (!["simple", "dca", "m1", "m5", "both"].includes(signalMode))
       return NextResponse.json({ error: "signalMode không hợp lệ" }, { status: 400 });
     await prisma.mt5Account.update({ where: { id }, data: { signalMode } });
     return NextResponse.json({ ok: true, signalMode });
