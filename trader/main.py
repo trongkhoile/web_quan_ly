@@ -378,9 +378,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     signal = parse_signal(message.text)
     if signal is None:
         return
-    # M5 dùng cùng keyword PRO như DCA → remap CLOSE_DCA → CLOSE_M5
-    if source == "m5" and signal.action == "CLOSE_DCA":
-        signal.action = "CLOSE_M5"
     await dispatch_signal(message.text, signal, source)
 
 

@@ -64,9 +64,13 @@ def parse_signal(text: str) -> Optional[TradeSignal]:
     if re.search(r"\b(WIN|LOSS)\b", first) and re.search(r"\bVIP\b", first):
         return TradeSignal(action="CLOSE_SIMPLE", symbol="")
 
-    # WIN/LOSS PRO → đóng tất cả lệnh DCA (comment="dca") hoặc M5 (remap trong main.py)
-    if re.search(r"\b(WIN|LOSS)\b", first) and re.search(r"\bPRO\b", first):
+    # WIN/LOSS DCA → đóng tất cả lệnh DCA (comment="dca")
+    if re.search(r"\b(WIN|LOSS)\b", first) and re.search(r"\bDCA\b", first):
         return TradeSignal(action="CLOSE_DCA", symbol="")
+
+    # WIN/LOSS PRO → đóng tất cả lệnh M5 (comment="m5")
+    if re.search(r"\b(WIN|LOSS)\b", first) and re.search(r"\bPRO\b", first):
+        return TradeSignal(action="CLOSE_M5", symbol="")
 
     # CLOSE XAUUSD
     m = re.search(r"\bCLOSE\s+([A-Z][A-Z0-9]{1,9})\b", first)
