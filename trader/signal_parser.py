@@ -5,7 +5,7 @@ from typing import Literal, Optional
 
 @dataclass
 class TradeSignal:
-    action: Literal["BUY", "SELL", "CLOSE", "CLOSE_ALL", "CLOSE_SIMPLE", "CLOSE_DCA"]
+    action: Literal["BUY", "SELL", "CLOSE", "CLOSE_ALL", "CLOSE_SIMPLE", "CLOSE_DCA", "CLOSE_M1", "CLOSE_M5"]
     symbol: str
     entry: Optional[float] = None
     sl: Optional[float] = None
@@ -15,7 +15,7 @@ class TradeSignal:
 
 
 # Từ không phải symbol dù toàn chữ hoa
-_NOT_SYMBOL = {"BUY", "SELL", "CLOSE", "PRO", "VIP", "SIGNAL", "TRADE", "ALERT",
+_NOT_SYMBOL = {"BUY", "SELL", "CLOSE", "PRO", "VIP", "SUPERVIP", "SIGNAL", "TRADE", "ALERT",
                "ENTRY", "STOP", "TAKE", "PROFIT", "LOSS", "LOT", "TP", "SL",
                "DCA", "STANDARD", "PREMIUM", "MINI", "MICRO", "ORDER", "LIMIT",
                "WIN", "PIPS", "GOING"}
@@ -56,11 +56,15 @@ def parse_signal(text: str) -> Optional[TradeSignal]:
 
     first = lines[0].upper()
 
+    # WIN/LOSS SUPERVIP → đóng tất cả lệnh M1 (comment="m1")
+    if re.search(r"\b(WIN|LOSS)\b", first) and re.search(r"\bSUPERVIP\b", first):
+        return TradeSignal(action="CLOSE_M1", symbol="")
+
     # WIN/LOSS VIP → đóng tất cả lệnh đơn (comment="lenhdon")
     if re.search(r"\b(WIN|LOSS)\b", first) and re.search(r"\bVIP\b", first):
         return TradeSignal(action="CLOSE_SIMPLE", symbol="")
 
-    # WIN/LOSS PRO → đóng tất cả lệnh DCA (comment="dca")
+    # WIN/LOSS PRO → đóng tất cả lệnh DCA (comment="dca") hoặc M5 (remap trong main.py)
     if re.search(r"\b(WIN|LOSS)\b", first) and re.search(r"\bPRO\b", first):
         return TradeSignal(action="CLOSE_DCA", symbol="")
 

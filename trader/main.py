@@ -46,6 +46,8 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN        = os.environ["TELEGRAM_BOT_TOKEN"]
 GROUP_ID_DCA     = int(os.environ["TELEGRAM_GROUP_ID"])          # Nhóm lệnh DCA
 GROUP_ID_SIMPLE  = int(os.environ.get("TELEGRAM_GROUP_ID_SIMPLE", "0"))  # Nhóm lệnh đơn
+GROUP_ID_M1      = int(os.environ.get("TELEGRAM_GROUP_ID_M1", "0"))      # Nhóm M1 (SUPERVIP)
+GROUP_ID_M5      = int(os.environ.get("TELEGRAM_GROUP_ID_M5", "0"))      # Nhóm M5 (PRO)
 BASE_EXE         = os.environ.get("MT5_TERMINAL_EXE", r"C:\Program Files\MetaTrader 5\terminal64.exe")
 
 # ── Single-instance lock (Windows) ────────────────────────────────────────────
@@ -366,12 +368,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         source = "dca"
     elif GROUP_ID_SIMPLE and chat_id == GROUP_ID_SIMPLE:
         source = "simple"
+    elif GROUP_ID_M1 and chat_id == GROUP_ID_M1:
+        source = "m1"
+    elif GROUP_ID_M5 and chat_id == GROUP_ID_M5:
+        source = "m5"
     else:
         return
 
     signal = parse_signal(message.text)
     if signal is None:
         return
+    # M5 dùng cùng keyword PRO như DCA → remap CLOSE_DCA → CLOSE_M5
+    if source == "m5" and signal.action == "CLOSE_DCA":
+        signal.action = "CLOSE_M5"
     await dispatch_signal(message.text, signal, source)
 
 
@@ -405,7 +414,12 @@ async def run():
         .pool_timeout(5.0)
         .build()
     )
-    allowed_chats = [GROUP_ID_DCA] + ([GROUP_ID_SIMPLE] if GROUP_ID_SIMPLE else [])
+    allowed_chats = (
+        [GROUP_ID_DCA]
+        + ([GROUP_ID_SIMPLE] if GROUP_ID_SIMPLE else [])
+        + ([GROUP_ID_M1] if GROUP_ID_M1 else [])
+        + ([GROUP_ID_M5] if GROUP_ID_M5 else [])
+    )
     app.add_handler(MessageHandler(filters.TEXT & filters.Chat(allowed_chats), handle_message))
 
     async def run_telegram():

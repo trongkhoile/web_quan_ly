@@ -504,7 +504,7 @@ def worker_process(
                     signal, signal_mode, source = item, "both", "dca"
 
                 # Comment cho lệnh MT5 theo nhóm tín hiệu
-                order_comment = "lenhdon" if source == "simple" else "dca"
+                order_comment = {"simple": "lenhdon", "m1": "m1", "m5": "m5"}.get(source, "dca")
 
                 if mt5.account_info() is None:
                     logging.warning("Mất kết nối MT5, đang kết nối lại...")
@@ -512,7 +512,7 @@ def worker_process(
                         raise RuntimeError(f"Kết nối lại thất bại: {mt5.last_error()}")
 
                 # Đóng lệnh không cần Algo Trading bật — chỉ check khi mở lệnh mới
-                _is_close = signal.action in ("CLOSE", "CLOSE_SIMPLE", "CLOSE_DCA", "CLOSE_ALL")
+                _is_close = signal.action in ("CLOSE", "CLOSE_SIMPLE", "CLOSE_DCA", "CLOSE_M1", "CLOSE_M5", "CLOSE_ALL")
                 if not _is_close:
                     term = mt5.terminal_info()
                     if term and not term.trade_allowed:
@@ -525,6 +525,10 @@ def worker_process(
                     msg = _close_positions_by_comment("lenhdon")
                 elif signal.action == "CLOSE_DCA":
                     msg = _close_positions_by_comment("dca")
+                elif signal.action == "CLOSE_M1":
+                    msg = _close_positions_by_comment("m1")
+                elif signal.action == "CLOSE_M5":
+                    msg = _close_positions_by_comment("m5")
                 elif signal.action == "CLOSE":
                     msg = _close_positions(signal.symbol)
                 else:
