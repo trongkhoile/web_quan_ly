@@ -9,7 +9,7 @@ const NAVY = "#0d2137";
 
 type Account = {
   id: string; name: string; mt5Login: string; mt5Server: string;
-  isActive: boolean; signalMode: "simple" | "dca" | "m1" | "m5" | "both";
+  isActive: boolean; signalMode: string;
   lot: number;
   status: "pending" | "connected" | "failed"; createdAt: string;
 };
@@ -96,9 +96,13 @@ export default function DashboardPage() {
   }
 
   async function handleSignalMode(acc: Account, mode: string) {
+    const VALID = ["simple", "dca", "m1", "m5"];
+    const current = acc.signalMode.split(",").filter(m => VALID.includes(m));
+    const next = current.includes(mode) ? current.filter(m => m !== mode) : [...current, mode];
+    if (next.length === 0) return;
     setChangingMode(acc.id);
     try {
-      const res = await fetch(`/api/accounts?id=${acc.id}&signalMode=${mode}`, { method: "PATCH" });
+      const res = await fetch(`/api/accounts?id=${acc.id}&signalMode=${next.join(",")}`, { method: "PATCH" });
       if (res.ok) fetchAccounts();
     } finally { setChangingMode(null); }
   }
@@ -296,16 +300,19 @@ export default function DashboardPage() {
                           {/* Signal mode */}
                           <div className="flex flex-wrap gap-1.5 items-center">
                             <span className="text-xs text-gray-400 shrink-0">Tín hiệu:</span>
-                            {(["simple", "dca", "m1", "m5"] as const).map((m) => (
-                              <button key={m} onClick={() => handleSignalMode(acc, m)}
-                                disabled={changingMode === acc.id}
-                                className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition ${acc.signalMode === m
-                                  ? "text-white border-transparent"
-                                  : "text-gray-400 border-gray-200 hover:border-[#00b894] hover:text-[#00b894]"}`}
-                                style={acc.signalMode === m ? { background: T } : {}}>
-                                {m === "simple" ? "Lệnh đơn" : m.toUpperCase()}
-                              </button>
-                            ))}
+                            {(["simple", "dca", "m1", "m5"] as const).map((m) => {
+                              const active = acc.signalMode.split(",").includes(m);
+                              return (
+                                <button key={m} onClick={() => handleSignalMode(acc, m)}
+                                  disabled={changingMode === acc.id}
+                                  className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition ${active
+                                    ? "text-white border-transparent"
+                                    : "text-gray-400 border-gray-200 hover:border-[#00b894] hover:text-[#00b894]"}`}
+                                  style={active ? { background: T } : {}}>
+                                  {m === "simple" ? "Nhóm chính" : m.toUpperCase()}
+                                </button>
+                              );
+                            })}
                           </div>
                           {/* Lot */}
                           <div className="flex items-center gap-2">

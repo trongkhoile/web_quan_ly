@@ -311,8 +311,7 @@ async def dispatch_signal(signal_text: str, signal: TradeSignal, source: str = "
     queues = [
         (aid, q) for aid, q in worker_queues.items()
         if aid not in inactive_ids
-        and (worker_signal_modes.get(aid, "both") == "both"
-             or worker_signal_modes.get(aid) == source)
+        and (lambda m: m == "both" or source in m.split(","))(worker_signal_modes.get(aid, "both"))
     ]
     n = len(queues)
 

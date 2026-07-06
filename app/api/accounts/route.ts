@@ -66,7 +66,9 @@ export async function PATCH(req: NextRequest) {
 
   const signalMode = req.nextUrl.searchParams.get("signalMode");
   if (signalMode) {
-    if (!["simple", "dca", "m1", "m5", "both"].includes(signalMode))
+    const VALID_MODES = ["simple", "dca", "m1", "m5", "both"];
+    const modes = signalMode.split(",");
+    if (modes.length === 0 || modes.some(m => !VALID_MODES.includes(m)))
       return NextResponse.json({ error: "signalMode không hợp lệ" }, { status: 400 });
     await prisma.mt5Account.update({ where: { id }, data: { signalMode } });
     return NextResponse.json({ ok: true, signalMode });
