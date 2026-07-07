@@ -7,6 +7,7 @@ Các tài khoản cũ KHÔNG bị ảnh hưởng gì khi có tài khoản mới.
 """
 
 import asyncio
+import datetime
 import logging
 import msvcrt
 import multiprocessing as mp
@@ -18,7 +19,7 @@ from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, ContextTypes, MessageHandler, filters
 
-from db import get_active_accounts, get_pending_accounts, get_all_account_ids, get_all_terminal_paths, get_all_accounts, update_account_status, log_trade, set_terminal_path, push_trade_history
+from db import get_active_accounts, get_pending_accounts, get_all_account_ids, get_all_terminal_paths, get_all_accounts, update_account_status, log_trade, set_terminal_path, push_trade_history, clear_trade_history
 from signal_parser import parse_signal, TradeSignal
 from terminal_manager import (
     allocate_terminal,
@@ -225,6 +226,25 @@ async def load_existing_accounts():
 
 # ── Background: theo dõi tài khoản mới ────────────────────────────────────
 
+async def daily_clear_history():
+    """Xóa TradeHistory + TradeLog mỗi ngày lúc 00:00 VN (UTC+7)."""
+    TZ_VN = datetime.timezone(datetime.timedelta(hours=7))
+    while True:
+        now = datetime.datetime.now(TZ_VN)
+        tomorrow = (now + datetime.timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        wait = (tomorrow - now).total_seconds()
+        logger.info(f"Clear history: chờ {wait/3600:.1f}h đến 00:00 VN...")
+        try:
+            await asyncio.sleep(wait)
+        except asyncio.CancelledError:
+            break
+        try:
+            result = await asyncio.to_thread(clear_trade_history)
+            logger.info(f"✅ Clear history: {result}")
+        except Exception as e:
+            logger.error(f"❌ Clear history thất bại: {e}")
+
+
 async def watch_new_accounts():
     while True:
         await asyncio.sleep(10)
@@ -398,6 +418,7 @@ async def run():
     asyncio.create_task(drain_result_queue())
     asyncio.create_task(watch_new_accounts())
     asyncio.create_task(watch_accounts_changes())
+    asyncio.create_task(daily_clear_history())
 
     await load_existing_accounts()
 

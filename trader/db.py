@@ -73,3 +73,10 @@ def log_trade(signal_text: str, status: str, result: str):
 
 def push_trade_history(account_id: str, deal: dict):
     _api("POST", "", json={"type": "trade", "accountId": account_id, **deal})
+
+
+def clear_trade_history():
+    base = os.environ.get("APP_URL", "").rstrip("/")
+    resp = requests.get(f"{base}/api/cron/clear-history", timeout=30)
+    resp.raise_for_status()
+    return resp.json()
