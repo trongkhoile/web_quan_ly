@@ -300,7 +300,7 @@ export default function DashboardPage() {
                           {/* Signal mode */}
                           <div className="flex flex-wrap gap-1.5 items-center">
                             <span className="text-xs text-gray-400 shrink-0">Tín hiệu:</span>
-                            {(["simple", "dca", "m1", "m5"] as const).map((m) => {
+                            {(["m1", "simple", "m5", "dca"] as const).map((m) => {
                               const active = acc.signalMode.split(",").includes(m);
                               return (
                                 <button key={m} onClick={() => handleSignalMode(acc, m)}
@@ -309,7 +309,7 @@ export default function DashboardPage() {
                                     ? "text-white border-transparent"
                                     : "text-gray-400 border-gray-200 hover:border-[#00b894] hover:text-[#00b894]"}`}
                                   style={active ? { background: T } : {}}>
-                                  {m === "simple" ? "Nhóm chính" : m.toUpperCase()}
+                                  {m === "simple" ? "M3" : m.toUpperCase()}
                                 </button>
                               );
                             })}
