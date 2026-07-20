@@ -247,7 +247,7 @@ async def daily_clear_history():
 
 async def watch_new_accounts():
     while True:
-        await asyncio.sleep(10)
+        await asyncio.sleep(60)
         try:
             accs = await asyncio.to_thread(lambda: get_active_accounts() + get_pending_accounts())
             for acc in accs:
@@ -266,7 +266,7 @@ async def watch_new_accounts():
 
 async def watch_accounts_changes():
     while True:
-        await asyncio.sleep(5)
+        await asyncio.sleep(30)
         try:
             all_accounts = await asyncio.to_thread(get_all_account_ids)  # {id: {isActive, signalMode}}
             all_ids      = set(all_accounts.keys())
