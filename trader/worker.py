@@ -346,6 +346,61 @@ def _close_all_positions() -> str:
     return f"Đóng {closed}/{len(bot_positions)} lệnh, hủy {cancelled} pending"
 
 
+def _cancel_pending_by_comment(comment: str) -> str:
+    """Hủy tất cả pending orders có comment khớp (magic=123456), không đóng lệnh đang chạy."""
+    pending = mt5.orders_get() or []
+    targets = [o for o in pending if o.magic == 123456 and o.comment.lower() == comment.lower()]
+    cancelled = 0
+    for order in targets:
+        if _cancel_pending(order.ticket):
+            cancelled += 1
+    return f"Hủy {cancelled} pending '{comment}'"
+
+
+def _open_limit_order(signal: TradeSignal, entry_price: float, comment: str = "limit") -> str:
+    """Đặt lệnh pending BUY LIMIT / SELL LIMIT tại entry_price."""
+    symbol = _resolve_symbol(signal.symbol)
+    symbol_info = mt5.symbol_info(symbol)
+    if not symbol_info.visible:
+        mt5.symbol_select(symbol, True)
+        time.sleep(0.3)
+        symbol_info = mt5.symbol_info(symbol)
+
+    filling = _get_filling_mode(symbol_info)
+    order_type = (mt5.ORDER_TYPE_BUY_LIMIT if signal.action == "BUY_LIMIT"
+                  else mt5.ORDER_TYPE_SELL_LIMIT)
+
+    request = {
+        "action":       mt5.TRADE_ACTION_PENDING,
+        "symbol":       symbol,
+        "volume":       signal.lot,
+        "type":         order_type,
+        "price":        entry_price,
+        "deviation":    20,
+        "magic":        123456,
+        "comment":      comment,
+        "type_time":    mt5.ORDER_TIME_GTC,
+        "type_filling": filling,
+    }
+    if signal.sl is not None:
+        request["sl"] = signal.sl
+    if signal.tp is not None:
+        request["tp"] = signal.tp
+
+    logging.info(
+        f"limit order_send: {signal.action} {symbol} "
+        f"entry={entry_price} sl={signal.sl} tp={signal.tp} lot={signal.lot}"
+    )
+
+    result = mt5.order_send(request)
+    if result is None or result.retcode != mt5.TRADE_RETCODE_DONE:
+        retcode = result.retcode if result else "None"
+        cmt = result.comment if result else ""
+        raise RuntimeError(f"LIMIT retcode={retcode} {cmt}")
+
+    return f"limit_ticket={result.order}"
+
+
 def _close_positions_by_comment(comment: str) -> str:
     """Đóng lệnh mở + hủy pending có comment khớp (magic=123456)."""
     positions = mt5.positions_get() or []
@@ -513,6 +568,7 @@ def worker_process(
 
                 # Đóng lệnh không cần Algo Trading bật — chỉ check khi mở lệnh mới
                 _is_close = signal.action in ("CLOSE", "CLOSE_SIMPLE", "CLOSE_DCA", "CLOSE_M1", "CLOSE_M5", "CLOSE_ALL")
+                _is_limit = signal.action in ("BUY_LIMIT", "SELL_LIMIT")
                 if not _is_close:
                     term = mt5.terminal_info()
                     if term and not term.trade_allowed:
@@ -531,6 +587,13 @@ def worker_process(
                     msg = _close_positions_by_comment("m5")
                 elif signal.action == "CLOSE":
                     msg = _close_positions(signal.symbol)
+                elif _is_limit:
+                    if signal.entry is None:
+                        raise RuntimeError("Tín hiệu LIMIT thiếu Entry price")
+                    signal.lot = lot
+                    cancel_msg = _cancel_pending_by_comment("limit")
+                    limit_msg = _open_limit_order(signal, signal.entry, "limit")
+                    msg = f"{cancel_msg} | {limit_msg}"
                 else:
                     has_dca = signal.dca is not None
 

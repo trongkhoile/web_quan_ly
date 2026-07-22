@@ -309,7 +309,7 @@ export default function DashboardPage() {
                                     ? "text-white border-transparent"
                                     : "text-gray-400 border-gray-200 hover:border-[#00b894] hover:text-[#00b894]"}`}
                                   style={active ? { background: T } : {}}>
-                                  {m === "simple" ? "M3" : m.toUpperCase()}
+                                  {m === "simple" ? "M3" : m === "dca" ? "Limit" : m.toUpperCase()}
                                 </button>
                               );
                             })}

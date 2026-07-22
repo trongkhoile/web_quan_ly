@@ -5,7 +5,7 @@ from typing import Literal, Optional
 
 @dataclass
 class TradeSignal:
-    action: Literal["BUY", "SELL", "CLOSE", "CLOSE_ALL", "CLOSE_SIMPLE", "CLOSE_DCA", "CLOSE_M1", "CLOSE_M5"]
+    action: Literal["BUY", "SELL", "BUY_LIMIT", "SELL_LIMIT", "CLOSE", "CLOSE_ALL", "CLOSE_SIMPLE", "CLOSE_DCA", "CLOSE_M1", "CLOSE_M5"]
     symbol: str
     entry: Optional[float] = None
     sl: Optional[float] = None
@@ -90,6 +90,10 @@ def parse_signal(text: str) -> Optional[TradeSignal]:
 
     # Symbol là từ viết hoa cuối cùng trên dòng đầu (sau BUY/SELL)
     after_action = first[action_m.end():]
+
+    # Kiểm tra BUY LIMIT / SELL LIMIT
+    if re.match(r"\s+LIMIT\b", after_action):
+        action = action + "_LIMIT"
     tokens = re.findall(r"[A-Z][A-Z0-9]{1,9}", after_action)
     symbol = None
     for tok in reversed(tokens):
