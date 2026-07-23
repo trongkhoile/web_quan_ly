@@ -357,6 +357,21 @@ def _cancel_pending_by_comment(comment: str) -> str:
     return f"Hủy {cancelled} pending '{comment}'"
 
 
+def _cancel_excess_pending(comment: str, keep: int = 1) -> str:
+    """Hủy các pending orders cũ nhất, chỉ giữ lại `keep` lệnh gần nhất (theo ticket)."""
+    pending = mt5.orders_get() or []
+    targets = sorted(
+        [o for o in pending if o.magic == 123456 and o.comment.lower() == comment.lower()],
+        key=lambda o: o.ticket,
+    )
+    to_cancel = targets[:-keep] if len(targets) > keep else []
+    cancelled = 0
+    for order in to_cancel:
+        if _cancel_pending(order.ticket):
+            cancelled += 1
+    return f"Hủy {cancelled} pending cũ '{comment}'"
+
+
 def _open_limit_order(signal: TradeSignal, entry_price: float, comment: str = "limit") -> str:
     """Đặt lệnh pending BUY LIMIT / SELL LIMIT tại entry_price."""
     symbol = _resolve_symbol(signal.symbol)
@@ -591,7 +606,7 @@ def worker_process(
                     if signal.entry is None:
                         raise RuntimeError("Tín hiệu LIMIT thiếu Entry price")
                     signal.lot = lot
-                    cancel_msg = _cancel_pending_by_comment("limit")
+                    cancel_msg = _cancel_excess_pending("limit", keep=1)
                     limit_msg = _open_limit_order(signal, signal.entry, "limit")
                     msg = f"{cancel_msg} | {limit_msg}"
                 else:
